@@ -626,26 +626,28 @@ function AppContent() {
 
   // Fetch branding (logo & favicon) configured via environment variables from server, with query param / localStorage fallback
   useEffect(() => {
-    fetch("/api/branding")
+    fetch("/api/branding/logo")
       .then(res => res.json())
       .then(data => {
-        if (data.logoUrl) {
-          setLogoUrl(data.logoUrl);
-          localStorage.setItem("logo_url", data.logoUrl);
+        const logo = data.logo || data.logoUrl;
+        const favicon = data.favicon || data.faviconUrl || logo;
+        if (logo) {
+          setLogoUrl(logo);
+          localStorage.setItem("logo_url", logo);
         } else {
           const params = new URLSearchParams(window.location.search);
           const customUrl = params.get("logo_url") || localStorage.getItem("logo_url");
           if (customUrl) setLogoUrl(customUrl);
         }
 
-        if (data.faviconUrl) {
+        if (favicon) {
           let link = document.querySelector("link[rel*='icon']") as HTMLLinkElement;
           if (!link) {
             link = document.createElement("link");
             link.rel = "shortcut icon";
             document.head.appendChild(link);
           }
-          link.href = data.faviconUrl;
+          link.href = favicon;
         }
       })
       .catch(() => {
@@ -1195,7 +1197,7 @@ function AppContent() {
                 className="flex items-center gap-2.5 bg-slate-50 p-2 rounded-xl border border-slate-100 cursor-pointer hover:bg-slate-100 active:bg-slate-200 transition-all select-none"
               >
                 <div className="w-8 h-8 rounded-lg bg-brand-secondary flex items-center justify-center font-bold text-xs text-white uppercase shrink-0">
-                  {user?.nome ? user.nome.substring(0, 2).toUpperCase() : "PC"}
+                  {user?.nome ? user.nome.substring(0, 2).toUpperCase() : "PP"}
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="text-[11px] font-bold text-brand-text-primary truncate leading-none">{user?.nome}</p>
@@ -1232,7 +1234,7 @@ function AppContent() {
                     >
                       <div className="flex items-center gap-3 pb-3 border-b border-slate-100">
                         <div className="w-10 h-10 rounded-xl bg-brand-secondary flex items-center justify-center font-black text-sm text-white uppercase">
-                          {user?.nome ? user.nome.substring(0, 2).toUpperCase() : "PC"}
+                          {user?.nome ? user.nome.substring(0, 2).toUpperCase() : "PP"}
                         </div>
                         <div className="min-w-0 flex-1">
                           <p className="text-xs font-black text-slate-800 truncate leading-tight">{user?.nome}</p>

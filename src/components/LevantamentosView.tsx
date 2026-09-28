@@ -1551,7 +1551,7 @@ export default function LevantamentosView() {
                 Atenção: Material Faltante
               </h3>
               <p className="text-xs text-slate-600 leading-relaxed font-semibold">
-                É obrigatório inserir pelo menos um material para a subestrutura em <strong>Material PC</strong> antes de salvar.
+                É obrigatório inserir pelo menos um material para a subestrutura em <strong>Material PP</strong> antes de salvar.
               </p>
               <div className="flex justify-center pt-2">
                 <button

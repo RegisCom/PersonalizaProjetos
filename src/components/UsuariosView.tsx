@@ -70,7 +70,7 @@ const COLUMN_OPTIONS = [
   { key: "margemLiquida", label: "Margem Líquida", tooltip: "Ver (visualizar) a margem líquida da obra." },
   { key: "custoAdm", label: "Custo Adm Unitário (Obras)", tooltip: "Ver (visualizar) ou alterar (editar) o custo administrativo na edição de obra." },
   { key: "valorItens", label: "Valor Unitário de Itens/Subitens", tooltip: "Ver (visualizar) ou alterar (editar) o valor unitário das composições (R$). Se removido, mascara valores." },
-  { key: "subestruturas", label: "Subestruturas & Valores", tooltip: "Controla a visualização e edição da expansão de subestruturas e cálculo de m² (HD e PC)." }
+  { key: "subestruturas", label: "Subestruturas & Valores", tooltip: "Controla a visualização e edição da expansão de subestruturas e cálculo de m² (HD e PP)." }
 ];
 
 const ACTION_OPTIONS = [

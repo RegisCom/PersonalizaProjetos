@@ -339,7 +339,7 @@ export default function DashboardView() {
             <div className="bg-white p-5 rounded-xl border border-slate-100 shadow-xs flex flex-col justify-between">
               <div>
                 <h4 className="text-xs font-bold text-brand-text-primary uppercase tracking-wide">Custo Geral vs. Valor Contrato</h4>
-                <p className="text-[10px] text-brand-text-secondary mt-0.5 font-semibold">Comparativo do Valor do Contrato PC com a evolução dos Custos Gerais.</p>
+                <p className="text-[10px] text-brand-text-secondary mt-0.5 font-semibold">Comparativo do Valor do Contrato PP com a evolução dos Custos Gerais.</p>
               </div>
               <div className="w-full h-52 mt-4">
                 <ResponsiveContainer width="100%" height="100%">

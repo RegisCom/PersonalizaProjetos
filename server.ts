@@ -1135,6 +1135,51 @@ async function bootstrap() {
     res.json({ status: "ok", time: new Date() });
   });
 
+  // 100% PUBLIC BRANDING ROUTE - Defined BEFORE all auth middlewares
+  // Returns structured JSON: { "logo": "https://supabase.co..." }
+  app.get("/api/branding/logo", (req, res) => {
+    try {
+      const s3Url = (process.env.S3_URL || "").trim();
+
+      if (!s3Url) {
+        return res.json({ logo: "", favicon: "" });
+      }
+
+      const cleanBase = s3Url.endsWith("/") ? s3Url.slice(0, -1) : s3Url;
+      const targetUrl = cleanBase.includes("Imagens-Bucket")
+        ? `${cleanBase}/Projeto.jpeg`
+        : `${cleanBase}/Imagens-Bucket/Projeto.jpeg`;
+
+      return res.json({
+        logo: targetUrl,
+        favicon: targetUrl,
+        logoUrl: targetUrl,
+        faviconUrl: targetUrl
+      });
+    } catch (err: any) {
+      console.error("[Branding S3] Erro ao retornar logo:", err.message);
+      return res.status(500).json({ error: "Erro ao obter branding" });
+    }
+  });
+
+  // GET /api/branding - Also completely public before auth
+  app.get("/api/branding", (req, res) => {
+    const s3Url = (process.env.S3_URL || "").trim();
+    let targetUrl = "";
+    if (s3Url) {
+      const cleanBase = s3Url.endsWith("/") ? s3Url.slice(0, -1) : s3Url;
+      targetUrl = cleanBase.includes("Imagens-Bucket")
+        ? `${cleanBase}/Projeto.jpeg`
+        : `${cleanBase}/Imagens-Bucket/Projeto.jpeg`;
+    }
+    return res.json({
+      logo: targetUrl,
+      favicon: targetUrl,
+      logoUrl: targetUrl,
+      faviconUrl: targetUrl
+    });
+  });
+
   // In-memory session token cache (15s TTL) to accelerate API authorization
   const sessionCache = new Map<string, { user: any; expiracao: Date; cachedAt: number }>();
 
@@ -1476,71 +1521,6 @@ async function bootstrap() {
       console.error("Erro no logout:", err);
       res.status(500).json({ error: "Erro ao realizar logout." });
     }
-  });
-
-  // Proxy /api/branding/logo - Streams the S3 bucket image (Imagens-Bucket/Projeto.jpeg) using S3_URL from .env
-  app.get("/api/branding/logo", async (req, res) => {
-    try {
-      const s3Url = (process.env.S3_URL || "").trim();
-
-      if (!s3Url) {
-        return res.status(404).send("S3_URL not configured");
-      }
-
-      // Format target S3 URL directly using Imagens-Bucket and Projeto.jpeg
-      const cleanBase = s3Url.endsWith("/") ? s3Url.slice(0, -1) : s3Url;
-      const targetUrl = cleanBase.includes("Imagens-Bucket")
-        ? `${cleanBase}/Projeto.jpeg`
-        : `${cleanBase}/Imagens-Bucket/Projeto.jpeg`;
-
-      // Fetch from public S3 endpoint and pipe directly to client
-      let response = await fetch(targetUrl);
-      if (!response.ok) {
-        // Fallback for lowercase filename
-        const fallbackUrl = cleanBase.includes("Imagens-Bucket")
-          ? `${cleanBase}/projeto.jpeg`
-          : `${cleanBase}/Imagens-Bucket/projeto.jpeg`;
-        response = await fetch(fallbackUrl);
-      }
-
-      if (!response.ok) {
-        return res.status(response.status).send(`Failed to fetch from S3: ${response.statusText}`);
-      }
-
-      const contentType = response.headers.get("content-type") || "image/jpeg";
-      res.setHeader("Content-Type", contentType);
-      res.setHeader("Cache-Control", "public, max-age=3600");
-
-      const arrayBuffer = await response.arrayBuffer();
-      res.send(Buffer.from(arrayBuffer));
-    } catch (err: any) {
-      console.error("[Branding S3] Erro ao buscar imagem:", err.message);
-      res.status(500).send("Erro ao obter imagem do S3");
-    }
-  });
-
-  // GET /api/branding - Returns logo and favicon pointing to public S3 image
-  app.get("/api/branding", (req, res) => {
-    const s3Url = (process.env.S3_URL || "").trim();
-
-    let logoUrl = "";
-    let faviconUrl = "";
-
-    if (s3Url) {
-      const cleanBase = s3Url.endsWith("/") ? s3Url.slice(0, -1) : s3Url;
-      // Direct public URL to the bucket
-      const directPublicUrl = cleanBase.includes("Imagens-Bucket")
-        ? `${cleanBase}/Projeto.jpeg`
-        : `${cleanBase}/Imagens-Bucket/Projeto.jpeg`;
-
-      logoUrl = directPublicUrl;
-      faviconUrl = directPublicUrl;
-    }
-
-    res.json({
-      logoUrl,
-      faviconUrl
-    });
   });
 
   // GET /api/logs-acesso
@@ -3916,7 +3896,7 @@ app.get("/api/configuracoes/custo-adm-global", async (req, res) => {
            }
            const enrichedPC = subListPC.map((item: any) => {
              return {
-               material: item.material || "Produto PC",
+               material: item.material || "Produto PP",
                qtdPC: Number(item.qtdPC !== undefined ? item.qtdPC : 0),
                valorUnitario: Number(item.valorUnitario || 0)
              };

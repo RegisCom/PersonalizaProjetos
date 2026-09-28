@@ -277,8 +277,8 @@ const DEFAULT_NODES_DEF: Node[] = [
   { id: "diretoria", type: "process_rect", position: { x: 1620, y: 450 }, data: { label: "DIRETORIA", category: "brown", subtitle: "" } },
   { id: "cliente_final", type: "decision_diamond", position: { x: 1840, y: 435 }, data: { label: "CLIENTE", category: "black_diamond", subtitle: "" } },
 
-  // ROW 5: VIA PC, LEVANTAMENTO, CONFECÇÃO, DECLINADO, COMERCIAL DECL (y = 710)
-  { id: "via_pc", type: "process_rect", position: { x: 100, y: 710 }, data: { label: "VIA PC\nVIA HUNTER\nVIA CLIENTE", category: "blue", subtitle: "" } },
+  // ROW 5: VIA PP, LEVANTAMENTO, CONFECÇÃO, DECLINADO, COMERCIAL DECL (y = 710)
+  { id: "via_pc", type: "process_rect", position: { x: 100, y: 710 }, data: { label: "VIA PP\nVIA HUNTER\nVIA CLIENTE", category: "blue", subtitle: "" } },
   { id: "levantamento", type: "process_rect", position: { x: 330, y: 710 }, data: { label: "LEVANTAMENTO", category: "yellow", subtitle: "" } },
   { id: "confeccao_orc", type: "process_rect", position: { x: 540, y: 710 }, data: { label: "CONFECÇÃO DE\nORÇAMENTO", category: "orange", subtitle: "" } },
   { id: "declinado", type: "decision_diamond", position: { x: 770, y: 695 }, data: { label: "DECLINADO", category: "grey_diamond", subtitle: "" } },
@@ -1183,7 +1183,7 @@ function WorkflowTraditionalInner({ contracts, onContractClick, onRefresh }: Wor
     const officialMap: Record<string, { etapa: string; subetapa: string; status: string }> = {
       abertura_pasta: { etapa: "Solicitação", subetapa: "Abertura de Pasta", status: "Em Andamento" },
       solicitacao: { etapa: "Solicitação", subetapa: "Análise de Solicitação", status: "Em Andamento" },
-      via_pc: { etapa: "Solicitação", subetapa: "Via PC / Hunter", status: "Em Andamento" },
+      via_pc: { etapa: "Solicitação", subetapa: "Via PP / Hunter", status: "Em Andamento" },
       levantamento: { etapa: "Arquitetura", subetapa: "Levantamento", status: "Em Andamento" },
       arquitetura: { etapa: "Arquitetura", subetapa: "Projeto de Arquitetura", status: "Em Andamento" },
       arquitetura_comite: { etapa: "Arquitetura", subetapa: "Comitê de Arquitetura", status: "Em Andamento" },

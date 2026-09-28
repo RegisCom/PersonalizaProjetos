@@ -274,7 +274,7 @@ export default function WorkflowDrawer({ contractId, isOpen, onClose, onSuccess 
               />
             ) : (
               <div className="w-10 h-10 rounded-lg bg-brand-secondary flex items-center justify-center font-extrabold text-sm text-white shrink-0 uppercase">
-                {contract?.nome ? contract.nome.substring(0, 2).toUpperCase() : "PC"}
+                {contract?.nome ? contract.nome.substring(0, 2).toUpperCase() : "PP"}
               </div>
             )}
             <div>

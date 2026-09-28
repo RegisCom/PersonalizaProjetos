@@ -37,12 +37,13 @@ export default function LoginView() {
   const [logoUrl, setLogoUrl] = useState<string | null>(localStorage.getItem("logo_url"));
 
   useEffect(() => {
-    fetch("/api/branding")
+    fetch("/api/branding/logo")
       .then(res => res.json())
       .then(data => {
-        if (data.logoUrl) {
-          setLogoUrl(data.logoUrl);
-          localStorage.setItem("logo_url", data.logoUrl);
+        const url = data.logo || data.logoUrl;
+        if (url) {
+          setLogoUrl(url);
+          localStorage.setItem("logo_url", url);
         }
       })
       .catch(() => {});

@@ -1078,7 +1078,7 @@ export default function ObraDetailView() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {/* CONTRACT VALUE */}
         <div className="bg-brand-primary p-4 rounded-xl border border-brand-secondary shadow-md text-white transition-all duration-300 hover:shadow-lg">
-          <span className="text-[10px] font-bold text-slate-300 uppercase tracking-widest block">Valor Do Contrato PC</span>
+          <span className="text-[10px] font-bold text-slate-300 uppercase tracking-widest block">Valor Do Contrato PP</span>
           <h3 className="text-base font-extrabold font-mono text-brand-accent tracking-tight mt-1">
             {hasPermission("colunas", "valorContrato") ? formatBRL(project.valorContrato) : "••••••"}
           </h3>
