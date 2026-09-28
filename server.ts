@@ -1145,10 +1145,18 @@ async function bootstrap() {
         return res.json({ logo: "", favicon: "" });
       }
 
-      const cleanBase = s3Url.endsWith("/") ? s3Url.slice(0, -1) : s3Url;
-      const targetUrl = cleanBase.includes("Imagens-Bucket")
-        ? `${cleanBase}/Projeto.jpeg`
-        : `${cleanBase}/Imagens-Bucket/Projeto.jpeg`;
+      let cleanBase = s3Url.endsWith("/") ? s3Url.slice(0, -1) : s3Url;
+
+      // Handle Supabase storage public URL formatting:
+      // If user provides base URL like https://xyz.supabase.co, map to /storage/v1/object/public/Imagens-Bucket/Projeto.jpeg
+      let targetUrl = "";
+      if (cleanBase.includes("supabase.co") && !cleanBase.includes("/storage/v1/object/public")) {
+        targetUrl = `${cleanBase}/storage/v1/object/public/Imagens-Bucket/Projeto.jpeg`;
+      } else if (cleanBase.includes("Imagens-Bucket")) {
+        targetUrl = cleanBase.endsWith("Projeto.jpeg") ? cleanBase : `${cleanBase}/Projeto.jpeg`;
+      } else {
+        targetUrl = `${cleanBase}/Imagens-Bucket/Projeto.jpeg`;
+      }
 
       return res.json({
         logo: targetUrl,
@@ -1168,9 +1176,13 @@ async function bootstrap() {
     let targetUrl = "";
     if (s3Url) {
       const cleanBase = s3Url.endsWith("/") ? s3Url.slice(0, -1) : s3Url;
-      targetUrl = cleanBase.includes("Imagens-Bucket")
-        ? `${cleanBase}/Projeto.jpeg`
-        : `${cleanBase}/Imagens-Bucket/Projeto.jpeg`;
+      if (cleanBase.includes("supabase.co") && !cleanBase.includes("/storage/v1/object/public")) {
+        targetUrl = `${cleanBase}/storage/v1/object/public/Imagens-Bucket/Projeto.jpeg`;
+      } else if (cleanBase.includes("Imagens-Bucket")) {
+        targetUrl = cleanBase.endsWith("Projeto.jpeg") ? cleanBase : `${cleanBase}/Projeto.jpeg`;
+      } else {
+        targetUrl = `${cleanBase}/Imagens-Bucket/Projeto.jpeg`;
+      }
     }
     return res.json({
       logo: targetUrl,
