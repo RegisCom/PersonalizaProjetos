@@ -523,13 +523,13 @@ export default function ContractStepsView() {
 
                     {/* N° Pedido alphanumeric highlighted card */}
                     <div className="space-y-1 w-full flex-1">
-                      <label className="flex items-center gap-1 text-[10px] font-extrabold text-brand-text-secondary uppercase tracking-widest text-[#a9b388]">
+                      <label className="flex items-center gap-1 text-[10px] font-extrabold text-brand-text-secondary uppercase tracking-widest text-[#B8860B]">
                         <Hash className="w-3.5 h-3.5 text-brand-accent shrink-0" />
                         N° Pedido:
                       </label>
                       <input
                         type="text"
-                        className="w-full text-xs font-extrabold font-mono py-1.5 px-2 bg-white border border-[#a9b388]/30 text-brand-primary placeholder:text-slate-300 focus:outline-hidden focus:ring-1 focus:ring-[#a9b388] rounded-lg transition-all focus:border-[#a9b388]"
+                        className="w-full text-xs font-extrabold font-mono py-1.5 px-2 bg-white border border-[#D4AF37]/30 text-brand-primary placeholder:text-slate-300 focus:outline-hidden focus:ring-1 focus:ring-[#D4AF37] rounded-lg transition-all focus:border-[#D4AF37]"
                         placeholder="Ex: PED-1200"
                         value={drafts.numeroPedido}
                         onChange={(e) => handleDraftChange(p.id, "numeroPedido", e.target.value)}

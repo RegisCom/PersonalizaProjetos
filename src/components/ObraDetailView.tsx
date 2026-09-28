@@ -124,7 +124,7 @@ function DwgViewer({ fileName }: { fileName: string }) {
       }} />
 
       <div className="z-10 text-left space-y-1">
-        <span className="bg-amber-500/15 text-[#a9b388] border border-amber-500/25 rounded-md py-0.5 px-2 text-[8px] font-bold tracking-widest font-mono">
+        <span className="bg-amber-500/15 text-[#D4AF37] border border-amber-500/25 rounded-md py-0.5 px-2 text-[8px] font-bold tracking-widest font-mono">
           AUTOCAD DRAWING (DWG)
         </span>
         <h4 className="text-xs font-semibold text-white truncate font-mono mt-1">
@@ -134,13 +134,13 @@ function DwgViewer({ fileName }: { fileName: string }) {
 
       <div className="z-10 flex flex-col items-center justify-center gap-4 py-12">
         <div className="relative w-36 h-36 border border-slate-700 rounded-full flex items-center justify-center">
-          <div className="absolute inset-4 border border-dashed border-[#a9b388]/40 rounded-full animate-spin duration-30" />
+          <div className="absolute inset-4 border border-dashed border-[#D4AF37]/40 rounded-full animate-spin duration-30" />
           <div className="absolute inset-8 border border-sky-500/20 rounded-full" />
           <div className="absolute left-0 right-0 h-[1.5px] bg-sky-500/15" />
           <div className="absolute top-0 bottom-0 w-[1.5px] bg-sky-500/15" />
           <div className="absolute w-full h-[1px] bg-slate-400/10 rotate-45" />
           <div className="absolute w-full h-[1px] bg-slate-400/10 -rotate-45" />
-          <Building className="w-8 h-8 text-[#a9b388] animate-pulse" />
+          <Building className="w-8 h-8 text-[#D4AF37] animate-pulse" />
         </div>
         
         <div className="text-center space-y-1 max-w-sm">
@@ -154,7 +154,7 @@ function DwgViewer({ fileName }: { fileName: string }) {
       </div>
 
       <div className="z-10 flex items-center justify-center">
-        <div className="bg-slate-800/80 border border-slate-700/60 p-2 px-3 rounded-lg flex items-center gap-2 text-[9px] text-[#a9b388] font-mono font-bold">
+        <div className="bg-slate-800/80 border border-slate-700/60 p-2 px-3 rounded-lg flex items-center gap-2 text-[9px] text-[#D4AF37] font-mono font-bold">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping" />
           <span>PLANO OPERACIONAL DE ENGENHARIA</span>
         </div>
@@ -960,7 +960,7 @@ export default function ObraDetailView() {
     value: costCategoryMap[catName],
   }));
 
-  const CATEGORY_COLORS = ["#0D3B66", "#1F5A8A", "#a9b388", "#16A34A", "#F59E0B", "#DC2626", "#475569", "#334155", "#0F172A"];
+  const CATEGORY_COLORS = ["#B8860B", "#D4AF37", "#8C6207", "#16A34A", "#F59E0B", "#DC2626", "#475569", "#334155", "#0F172A"];
 
   // Filter items in the table
   const filteredItems = localItems.filter((item) => {
@@ -1389,7 +1389,7 @@ export default function ObraDetailView() {
 
                           {/* INLINE EXPANDED SUBITEM TABLE BODY SECTION */}
                           {hasPermission("colunas", "subestruturas") && expandedItemIds[item.id] && (
-                            <tr className="bg-slate-50/50 hover:bg-slate-50/80 transition-colors border-l-4 border-l-[#a9b388]">
+                            <tr className="bg-slate-50/50 hover:bg-slate-50/80 transition-colors border-l-4 border-l-[#D4AF37]">
                               <td colSpan={6} className="py-3 px-6 text-left" draggable="false" onDragStart={(e) => { e.preventDefault(); e.stopPropagation(); }}>
                                 <div className="space-y-3 pl-8">
                                   <div className="flex items-center justify-between border-b border-slate-150 pb-2">
@@ -1513,7 +1513,7 @@ export default function ObraDetailView() {
 
                                   {/* Inline form to append a new sub-item compositively */}
                                   {addingSubItemForId === item.id ? (
-                                    <div className="flex flex-wrap items-center gap-2 max-w-2xl bg-white border border-[#a9b388]/40 p-2 rounded-xl shadow-md animate-in slide-in-from-top-1 duration-150" onClick={(e) => e.stopPropagation()}>
+                                    <div className="flex flex-wrap items-center gap-2 max-w-2xl bg-white border border-[#D4AF37]/40 p-2 rounded-xl shadow-md animate-in slide-in-from-top-1 duration-150" onClick={(e) => e.stopPropagation()}>
                                       <input
                                         type="text"
                                         placeholder="Nova Descrição do Subitem (ex: Mão de Obra do pilar)"
@@ -2241,7 +2241,7 @@ export default function ObraDetailView() {
                               referrerPolicy="no-referrer"
                             />
                           ) : (
-                            <div className="w-12 h-12 rounded-xl bg-slate-900 flex items-center justify-center text-[#a9b388] font-black text-lg">
+                            <div className="w-12 h-12 rounded-xl bg-slate-900 flex items-center justify-center text-[#D4AF37] font-black text-lg">
                               PP
                             </div>
                           )}

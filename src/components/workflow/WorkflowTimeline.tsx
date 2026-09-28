@@ -68,7 +68,7 @@ export default function WorkflowTimeline({ currentStage }: WorkflowTimelineProps
                   {st}
                 </span>
                 {isActive && (
-                  <span className="text-[9px] font-bold text-[#a9b388] uppercase tracking-widest mt-1 animate-pulse">
+                  <span className="text-[9px] font-bold text-[#B8860B] uppercase tracking-widest mt-1 animate-pulse">
                     Fase Atual
                   </span>
                 )}

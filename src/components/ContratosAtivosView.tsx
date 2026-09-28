@@ -1645,8 +1645,8 @@ export default function ContratosAtivosView() {
           <stop offset="100%" stopColor="#FFEDD5" />
         </linearGradient>
         <linearGradient id="buildingGrad" x1="0%" y1="0%" x2="0%" y2="100%">
-          <stop offset="0%" stopColor="#F97316" />
-          <stop offset="100%" stopColor="#5f6f52" />
+          <stop offset="0%" stopColor="#D4AF37" />
+          <stop offset="100%" stopColor="#8C6207" />
         </linearGradient>
       </defs>
       {/* Background elements */}
@@ -1669,7 +1669,7 @@ export default function ContratosAtivosView() {
 
       {/* Left side building with angular roof */}
       <path d="M 70 240 L 70 120 L 150 120 L 150 240 Z" fill="#FDBA74" opacity="0.7" />
-      <path d="M 70 120 L 110 90 L 150 120 Z" fill="#5f6f52" opacity="0.85" />
+      <path d="M 70 120 L 110 90 L 150 120 Z" fill="#B8860B" opacity="0.85" />
       {/* Left building windows */}
       <rect x="85" y="140" width="15" height="15" fill="#FFF" rx="1" opacity="0.8" />
       <rect x="120" y="140" width="15" height="15" fill="#FFF" rx="1" opacity="0.8" />
@@ -1686,8 +1686,8 @@ export default function ContratosAtivosView() {
       <line x1="325" y1="185" x2="325" y2="240" stroke="#FFF" strokeWidth="2" />
 
       {/* Modern architectural details: Crane vector or trees */}
-      <path d="M 330 240 Q 345 220 350 240 Z" fill="#5f6f52" opacity="0.4" />
-      <path d="M 50 240 Q 60 215 70 240 Z" fill="#f97316" opacity="0.5" />
+      <path d="M 330 240 Q 345 220 350 240 Z" fill="#B8860B" opacity="0.4" />
+      <path d="M 50 240 Q 60 215 70 240 Z" fill="#D4AF37" opacity="0.5" />
     </svg>
   );
 
@@ -3184,13 +3184,13 @@ export default function ContratosAtivosView() {
                         style={{ width: "44px", height: "44px", objectFit: "contain" }}
                       />
                     ) : (
-                      <div style={{ width: "44px", height: "44px", borderRadius: "10px", backgroundColor: "#5f6f52", display: "flex", alignItems: "center", justifyContent: "center", color: "#a9b388", fontWeight: 900, fontSize: "18px" }}>
+                      <div style={{ width: "44px", height: "44px", borderRadius: "10px", backgroundColor: "#B8860B", display: "flex", alignItems: "center", justifyContent: "center", color: "#FFFFFF", fontWeight: 900, fontSize: "18px" }}>
                         PP
                       </div>
                     )}
                     <div style={{ borderLeft: "2px solid #000000", paddingLeft: "12px" }}>
                       <h2 style={{ fontSize: "16px", fontWeight: 900, color: "#000000", textTransform: "uppercase", margin: 0, lineHeight: 1 }}>PERSONALIZA PROJETOS</h2>
-                      <p style={{ fontSize: "8px", fontWeight: 900, color: "#5f6f52", textTransform: "uppercase", margin: "2px 0 0 0", letterSpacing: "1px" }}>Soluções Arquitetônicas Inteligentes</p>
+                      <p style={{ fontSize: "8px", fontWeight: 900, color: "#B8860B", textTransform: "uppercase", margin: "2px 0 0 0", letterSpacing: "1px" }}>Soluções Arquitetônicas Inteligentes</p>
                     </div>
                   </div>
                   
@@ -3207,14 +3207,14 @@ export default function ContratosAtivosView() {
                         {new Date().toLocaleDateString("pt-BR")}
                       </p>
                     </div>
-                    <div style={{ backgroundColor: "#5f6f52", color: "#ffffff", borderRadius: "12px", padding: "10px", display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <div style={{ backgroundColor: "#B8860B", color: "#ffffff", borderRadius: "12px", padding: "10px", display: "flex", alignItems: "center", justifyContent: "center" }}>
                       <FileText style={{ width: "20px", height: "20px", color: "#ffffff" }} />
                     </div>
                   </div>
                 </div>
 
                 {/* Horizontal line divider */}
-                <div style={{ height: "6px", backgroundColor: "#5f6f52", borderRadius: "9999px" }}></div>
+                <div style={{ height: "6px", backgroundColor: "#B8860B", borderRadius: "9999px" }}></div>
 
                 {/* 2. Hero Card with Building Image and Main attributes */}
                 <div style={{ border: "2px solid #cbd5e1", borderRadius: "16px", padding: "20px", backgroundColor: "#ffffff", display: "grid", gridTemplateColumns: "1fr 2fr", gap: "24px", alignItems: "center" }}>
@@ -3223,14 +3223,14 @@ export default function ContratosAtivosView() {
                   </div>
                   <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
                     <div>
-                      <span style={{ fontSize: "10px", fontWeight: 900, color: "#5f6f52", letterSpacing: "1px", textTransform: "uppercase", display: "block" }}>CLIENTE</span>
+                      <span style={{ fontSize: "10px", fontWeight: 900, color: "#B8860B", letterSpacing: "1px", textTransform: "uppercase", display: "block" }}>CLIENTE</span>
                       <h2 style={{ fontSize: "20px", fontWeight: 900, color: "#000000", margin: "2px 0 0 0" }}>
                         {clienteNome || "Nome do cliente"}
                       </h2>
                     </div>
 
                     <div>
-                      <span style={{ fontSize: "10px", fontWeight: 900, color: "#5f6f52", letterSpacing: "1px", textTransform: "uppercase", display: "block" }}>NOME DA OBRA</span>
+                      <span style={{ fontSize: "10px", fontWeight: 900, color: "#B8860B", letterSpacing: "1px", textTransform: "uppercase", display: "block" }}>NOME DA OBRA</span>
                       <h3 style={{ fontSize: "15px", fontWeight: 900, color: "#000000", margin: "2px 0 0 0", lineHeight: 1.2 }}>
                         {contratoNome || selectedObra.nome}
                       </h3>
@@ -3238,7 +3238,7 @@ export default function ContratosAtivosView() {
 
                     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: "16px", paddingTop: "8px", borderTop: "2px solid #e2e8f0" }}>
                       <div style={{ display: "flex", alignItems: "flex-start", gap: "8px" }}>
-                        <MapPin style={{ width: "16px", height: "16px", color: "#5f6f52", flexShrink: 0, marginTop: "2px" }} />
+                        <MapPin style={{ width: "16px", height: "16px", color: "#B8860B", flexShrink: 0, marginTop: "2px" }} />
                         <div>
                           <p style={{ fontSize: "8px", fontWeight: 800, color: "#000000", textTransform: "uppercase", margin: 0 }}>LOCALIZAÇÃO (OBRA)</p>
                           <p style={{ fontSize: "10px", fontWeight: 900, color: "#000000", margin: "2px 0 0 0", lineHeight: 1.2 }} title={`${municipio || ""} - ${uf || ""}`}>
@@ -3248,7 +3248,7 @@ export default function ContratosAtivosView() {
                       </div>
 
                       <div style={{ display: "flex", alignItems: "flex-start", gap: "8px" }}>
-                        <Calendar style={{ width: "16px", height: "16px", color: "#5f6f52", flexShrink: 0, marginTop: "2px" }} />
+                        <Calendar style={{ width: "16px", height: "16px", color: "#B8860B", flexShrink: 0, marginTop: "2px" }} />
                         <div>
                           <p style={{ fontSize: "8px", fontWeight: 800, color: "#000000", textTransform: "uppercase", margin: 0 }}>DATA CADASTRO</p>
                           <p style={{ fontSize: "10px", fontWeight: 900, color: "#000000", margin: "2px 0 0 0" }}>
@@ -3279,10 +3279,10 @@ export default function ContratosAtivosView() {
                 {/* 3. Dados Gerais Section */}
                 <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "8px", paddingBottom: "6px", borderBottom: "2px solid #cbd5e1" }}>
-                    <div style={{ width: "24px", height: "24px", backgroundColor: "#5f6f52", color: "#ffffff", borderRadius: "9999px", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "bold" }}>
+                    <div style={{ width: "24px", height: "24px", backgroundColor: "#B8860B", color: "#ffffff", borderRadius: "9999px", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "bold" }}>
                       <Briefcase style={{ width: "14px", height: "14px", color: "#ffffff" }} />
                     </div>
-                    <h3 style={{ fontSize: "12px", fontWeight: 900, color: "#5f6f52", textTransform: "uppercase", letterSpacing: "1px", margin: 0 }}>DADOS GERAIS</h3>
+                    <h3 style={{ fontSize: "12px", fontWeight: 900, color: "#B8860B", textTransform: "uppercase", letterSpacing: "1px", margin: 0 }}>DADOS GERAIS</h3>
                   </div>
 
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0 32px" }}>
@@ -3321,10 +3321,10 @@ export default function ContratosAtivosView() {
                 {/* 4. Informações Complementares Section */}
                 <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "8px", paddingBottom: "6px", borderBottom: "2px solid #cbd5e1" }}>
-                    <div style={{ width: "24px", height: "24px", backgroundColor: "#5f6f52", color: "#ffffff", borderRadius: "9999px", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "bold" }}>
+                    <div style={{ width: "24px", height: "24px", backgroundColor: "#B8860B", color: "#ffffff", borderRadius: "9999px", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "bold" }}>
                       <FileText style={{ width: "14px", height: "14px", color: "#ffffff" }} />
                     </div>
-                    <h3 style={{ fontSize: "12px", fontWeight: 900, color: "#5f6f52", textTransform: "uppercase", letterSpacing: "1px", margin: 0 }}>INFORMAÇÕES COMPLEMENTARES</h3>
+                    <h3 style={{ fontSize: "12px", fontWeight: 900, color: "#B8860B", textTransform: "uppercase", letterSpacing: "1px", margin: 0 }}>INFORMAÇÕES COMPLEMENTARES</h3>
                   </div>
 
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "24px" }}>
@@ -3527,7 +3527,7 @@ export default function ContratosAtivosView() {
                           <div key={idx} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", fontSize: "12px", fontWeight: 900, color: "#000000", backgroundColor: "#ffffff", padding: "10px", borderRadius: "8px", border: "1px solid #cbd5e1" }}>
                             <span>{it.material}</span>
                             {it.metragem ? (
-                              <span style={{ fontSize: "11px", fontWeight: 800, color: "#5f6f52", backgroundColor: "#f1f5f9", padding: "2px 8px", borderRadius: "4px" }}>
+                              <span style={{ fontSize: "11px", fontWeight: 800, color: "#B8860B", backgroundColor: "#fef9c3", padding: "2px 8px", borderRadius: "4px" }}>
                                 {String(it.metragem).toLowerCase().includes('m2') || String(it.metragem).toLowerCase().includes('m²') ? it.metragem : `${it.metragem} m²`}
                               </span>
                             ) : null}
@@ -3543,10 +3543,10 @@ export default function ContratosAtivosView() {
                 {/* 5. Endereços Section */}
                 <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "8px", paddingBottom: "6px", borderBottom: "2px solid #cbd5e1" }}>
-                    <div style={{ width: "24px", height: "24px", backgroundColor: "#5f6f52", color: "#ffffff", borderRadius: "9999px", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "bold" }}>
+                    <div style={{ width: "24px", height: "24px", backgroundColor: "#B8860B", color: "#ffffff", borderRadius: "9999px", display: "flex", alignItems: "center", justifyContent: "center", fontWeight: "bold" }}>
                       <MapPin style={{ width: "14px", height: "14px", color: "#ffffff" }} />
                     </div>
-                    <h3 style={{ fontSize: "12px", fontWeight: 900, color: "#5f6f52", textTransform: "uppercase", letterSpacing: "1px", margin: 0 }}>ENDEREÇOS</h3>
+                    <h3 style={{ fontSize: "12px", fontWeight: 900, color: "#B8860B", textTransform: "uppercase", letterSpacing: "1px", margin: 0 }}>ENDEREÇOS</h3>
                   </div>
 
                   <div style={{ backgroundColor: "#f8fafc", padding: "16px", borderRadius: "12px", border: "2px solid #cbd5e1" }}>

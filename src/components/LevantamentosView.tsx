@@ -695,7 +695,7 @@ export default function LevantamentosView() {
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-black text-brand-text-primary tracking-tight flex items-center gap-2">
-            <Coins className="w-6 h-6 text-[#a9b388]" />
+            <Coins className="w-6 h-6 text-[#B8860B]" />
             Levantamentos & Orçamentos
           </h1>
         </div>
@@ -752,8 +752,8 @@ export default function LevantamentosView() {
               {totalMetrosQuadrados.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} m²
             </div>
           </div>
-          <div className="w-12 h-12 bg-[#a9b388]/10 rounded-full flex items-center justify-center">
-            <Layers className="w-5 h-5 text-[#a9b388]" />
+          <div className="w-12 h-12 bg-[#D4AF37]/15 rounded-full flex items-center justify-center">
+            <Layers className="w-5 h-5 text-[#B8860B]" />
           </div>
         </motion.div>
 

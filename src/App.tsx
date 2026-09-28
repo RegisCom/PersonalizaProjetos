@@ -749,7 +749,7 @@ function AppContent() {
               )}
               <div>
                 <h2 className="text-sm font-black tracking-wider text-white leading-tight group-hover:text-brand-accent transition-colors">PERSONALIZA PROJETOS</h2>
-                <p className="text-[9px] font-bold text-[#a9b388] uppercase tracking-widest mt-0.5 leading-none">Gestão de Custos</p>
+                <p className="text-[9px] font-bold text-[#E5C158] uppercase tracking-widest mt-0.5 leading-none">Gestão de Contratos</p>
               </div>
             </div>
 
@@ -863,7 +863,7 @@ function AppContent() {
                     <ListChecks className="w-4 h-4 text-brand-accent/50" />
                     <span>Etapas do Contrato</span>
                   </div>
-                  <Lock className="w-3.5 h-3.5 text-[#a9b388] opacity-70 animate-pulse" />
+                  <Lock className="w-3.5 h-3.5 text-brand-accent opacity-70 animate-pulse" />
                 </button>
               )}
 
@@ -1201,7 +1201,7 @@ function AppContent() {
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="text-[11px] font-bold text-brand-text-primary truncate leading-none">{user?.nome}</p>
-                  <p className="text-[9px] font-bold text-[#a9b388] uppercase tracking-wider mt-1 leading-none">{user?.nivel}</p>
+                  <p className="text-[9px] font-bold text-[#B8860B] uppercase tracking-wider mt-1 leading-none">{user?.nivel}</p>
                 </div>
                 
                 <button
@@ -1238,7 +1238,7 @@ function AppContent() {
                         </div>
                         <div className="min-w-0 flex-1">
                           <p className="text-xs font-black text-slate-800 truncate leading-tight">{user?.nome}</p>
-                          <p className="text-[10px] font-extrabold text-[#a9b388] uppercase tracking-widest mt-0.5 leading-none">{user?.nivel}</p>
+                          <p className="text-[10px] font-extrabold text-[#B8860B] uppercase tracking-widest mt-0.5 leading-none">{user?.nivel}</p>
                         </div>
                       </div>
 
@@ -1385,7 +1385,7 @@ function AppContent() {
                     <rect x="60" y="10" width="6" height="70" fill="#B45309" rx="1" />
                     
                     {/* Slot at x=75 is vacant / missing brise-soleil - highlighted as target */}
-                    <rect x="75" y="10" width="6" height="70" fill="none" stroke="#a9b388" strokeWidth="1.5" strokeDasharray="3 3" rx="1" opacity="0.8" />
+                    <rect x="75" y="10" width="6" height="70" fill="none" stroke="#D4AF37" strokeWidth="1.5" strokeDasharray="3 3" rx="1" opacity="0.8" />
                     
                     <rect x="105" y="10" width="6" height="70" fill="#B45309" rx="1" />
                     <rect x="120" y="10" width="6" height="70" fill="#B45309" rx="1" />
@@ -1420,8 +1420,8 @@ function AppContent() {
                     style={{ y: 20 }}
                   >
                     {/* Helmet */}
-                    <path d="M -2 12 C -2 3, 16 3, 16 12 Z" fill="#a9b388" />
-                    <line x1="-5" y1="12" x2="19" y2="12" stroke="#a9b388" strokeWidth="2.5" strokeLinecap="round" />
+                    <path d="M -2 12 C -2 3, 16 3, 16 12 Z" fill="#D4AF37" />
+                    <line x1="-5" y1="12" x2="19" y2="12" stroke="#B8860B" strokeWidth="2.5" strokeLinecap="round" />
 
                     {/* Head */}
                     <circle cx="7" cy="21" r="8" fill="#475569" />
@@ -1517,7 +1517,7 @@ function AppContent() {
                       style={{ transformOrigin: "18px 35px" }}
                     >
                       {/* Wood textured Brise-soleil louver */}
-                      <rect x="0" y="0" width="6" height="70" fill="#a9b388" stroke="#B45309" strokeWidth="1" rx="1.5" />
+                      <rect x="0" y="0" width="6" height="70" fill="#D4AF37" stroke="#B45309" strokeWidth="1" rx="1.5" />
                       <circle cx="3" cy="5" r="2.2" fill="#334155" />
                       <circle cx="3" cy="65" r="2.2" fill="#334155" />
                     </motion.g>
