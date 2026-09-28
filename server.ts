@@ -752,29 +752,6 @@ async function checkDbConnection() {
           );
         }
 
-        // Seed Arthur Quântica admin
-        const checkArthur = await pool.query(
-          "SELECT id FROM usuarios WHERE LOWER(email) = $1 OR LOWER(nome_usuario) = $2",
-          ["arthur@quantica.eng.br", "arthur"]
-        );
-        const arthurPwdHash = hashPassword("admin123");
-
-        if (checkArthur.rowCount === 0) {
-          await pool.query(
-            `INSERT INTO usuarios (id, nome, nome_usuario, email, senha, nivel, permissoes)
-             VALUES ($1, $2, $3, $4, $5, $6, $7)
-             ON CONFLICT (id) DO NOTHING`,
-            ["usr-arthur-seed", "Arthur Quântica", "arthur", "arthur@quantica.eng.br", arthurPwdHash, "ADMIN", adminPerms]
-          );
-          console.log("[pg Sync] Seeding Arthur Quântica as admin user (arthur@quantica.eng.br / admin123)");
-        } else {
-          const foundArthurId = checkArthur.rows[0].id;
-          await pool.query(
-            "UPDATE usuarios SET nome_usuario = COALESCE(nome_usuario, 'arthur'), senha = $1, nivel = 'ADMIN' WHERE id = $2",
-            [arthurPwdHash, foundArthurId]
-          );
-        }
-
         // Initialize levantamentos table if not exist
         await pool.query(`
           CREATE TABLE IF NOT EXISTS levantamentos (
@@ -1237,7 +1214,7 @@ async function bootstrap() {
 
       if (userRes.rowCount === 0) {
         // Fallback default admin if not in DB or offline
-        if ((loginInput === "admin" || loginInput === "admin@personalizaprojetos.com" || loginInput === "admin@projetocerto.com" || loginInput === "arthur" || loginInput === "arthur@quantica.eng.br") && password === "admin123") {
+        if ((loginInput === "admin" || loginInput === "admin@personalizaprojetos.com") && password === "admin123") {
           user = {
             id: "usr-admin-fallback",
             nome: "Administrador",
@@ -1288,7 +1265,7 @@ async function bootstrap() {
         if (inputHash !== user.senha) {
           if (password === user.senha) {
             isPlainTextLogin = true;
-          } else if ((loginInput === "admin" || loginInput === "admin@personalizaprojetos.com" || loginInput === "admin@projetocerto.com" || loginInput === "arthur" || loginInput === "arthur@quantica.eng.br") && password === "admin123") {
+          } else if ((loginInput === "admin" || loginInput === "admin@personalizaprojetos.com") && password === "admin123") {
             // Allow admin recovery with admin123
             isPlainTextLogin = false;
           } else {
@@ -1477,6 +1454,58 @@ async function bootstrap() {
       console.error("Erro no logout:", err);
       res.status(500).json({ error: "Erro ao realizar logout." });
     }
+  });
+
+  // Proxy /api/branding/logo - Streams the S3 bucket image (Imagens-Bucket/projeto.jpeg) using S3_URL from .env
+  app.get("/api/branding/logo", async (req, res) => {
+    try {
+      const s3Url = (process.env.S3_URL || "").trim();
+
+      if (!s3Url) {
+        return res.status(404).send("S3_URL not configured");
+      }
+
+      // Format target S3 URL directly using Imagens-Bucket and projeto.jpeg
+      const cleanBase = s3Url.endsWith("/") ? s3Url.slice(0, -1) : s3Url;
+      const targetUrl = cleanBase.includes("Imagens-Bucket")
+        ? `${cleanBase}/projeto.jpeg`
+        : `${cleanBase}/Imagens-Bucket/projeto.jpeg`;
+
+      // Fetch from S3 endpoint and pipe directly to client
+      const response = await fetch(targetUrl);
+      if (!response.ok) {
+        return res.status(response.status).send(`Failed to fetch from S3: ${response.statusText}`);
+      }
+
+      const contentType = response.headers.get("content-type") || "image/jpeg";
+      res.setHeader("Content-Type", contentType);
+      res.setHeader("Cache-Control", "public, max-age=3600");
+
+      const arrayBuffer = await response.arrayBuffer();
+      res.send(Buffer.from(arrayBuffer));
+    } catch (err: any) {
+      console.error("[Branding S3] Erro ao buscar imagem:", err.message);
+      res.status(500).send("Erro ao obter imagem do S3");
+    }
+  });
+
+  // GET /api/branding - Returns logo and favicon pointing to the S3 image
+  app.get("/api/branding", (req, res) => {
+    const s3Url = (process.env.S3_URL || "").trim();
+
+    let logoUrl = "";
+    let faviconUrl = "";
+
+    if (s3Url) {
+      // Use internal proxy endpoint so browser avoids CORS/credentials issues
+      logoUrl = "/api/branding/logo";
+      faviconUrl = "/api/branding/logo";
+    }
+
+    res.json({
+      logoUrl,
+      faviconUrl
+    });
   });
 
   // GET /api/logs-acesso

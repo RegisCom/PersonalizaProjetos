@@ -817,7 +817,7 @@ export default function UsuariosView() {
               <div className="flex gap-1 items-start text-[8px] text-slate-500 leading-none">
                 <div className="w-1.5 h-1.5 rounded-full bg-blue-500 mt-0.5 shrink-0"></div>
                 <div>
-                  <strong className="text-slate-700 font-bold">Arthur</strong> aprovou proposta <span className="font-mono text-[7px]">14:15</span>
+                  <strong className="text-slate-700 font-bold">Admin</strong> aprovou proposta <span className="font-mono text-[7px]">14:15</span>
                 </div>
               </div>
             </div>
@@ -1084,8 +1084,8 @@ export default function UsuariosView() {
             <div className="bg-slate-50 border border-slate-200 rounded-lg p-2.5 flex items-center gap-2.5">
               <div className="w-6 h-6 rounded-full bg-slate-300 flex items-center justify-center font-bold text-slate-700 text-xs">A</div>
               <div className="leading-tight">
-                <div className="font-bold text-slate-700 text-[9px]">Arthur Quântica</div>
-                <div className="text-[7px] text-slate-400 font-mono">admin@quantica.eng.br</div>
+                <div className="font-bold text-slate-700 text-[9px]">Administrador</div>
+                <div className="text-[7px] text-slate-400 font-mono">admin@personalizaprojetos.com</div>
               </div>
             </div>
             {tooltipText && <span className="text-[9px] text-slate-400 block mt-1.5 leading-snug">{tooltipText}</span>}

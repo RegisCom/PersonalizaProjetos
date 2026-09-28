@@ -34,6 +34,19 @@ export default function LoginView() {
 
   // Recovery States
   const [showRecoveryModal, setShowRecoveryModal] = useState(false);
+  const [logoUrl, setLogoUrl] = useState<string | null>(localStorage.getItem("logo_url"));
+
+  useEffect(() => {
+    fetch("/api/branding")
+      .then(res => res.json())
+      .then(data => {
+        if (data.logoUrl) {
+          setLogoUrl(data.logoUrl);
+          localStorage.setItem("logo_url", data.logoUrl);
+        }
+      })
+      .catch(() => {});
+  }, []);
   const [recoveryStep, setRecoveryStep] = useState<1 | 2>(1);
   const [recoveryInput, setRecoveryInput] = useState("");
   const [recoveryCode, setRecoveryCode] = useState("");
@@ -210,9 +223,18 @@ export default function LoginView() {
           {/* Brand header */}
           <div className="text-center space-y-3">
             <div className="flex justify-center mb-6">
-              <div className="w-16 h-16 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center text-[#D9A441] font-black text-2xl shadow-md">
-                PP
-              </div>
+              {logoUrl ? (
+                <img
+                  src={logoUrl}
+                  alt="Personaliza Projetos Logo"
+                  className="max-h-16 max-w-[200px] object-contain drop-shadow-sm"
+                  onError={() => setLogoUrl(null)}
+                />
+              ) : (
+                <div className="w-16 h-16 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center text-[#D9A441] font-black text-2xl shadow-md">
+                  PP
+                </div>
+              )}
             </div>
             <div className="text-center space-y-1">
               <h1 className="text-2xl font-black tracking-wider text-slate-800 leading-none">PERSONALIZA PROJETOS</h1>

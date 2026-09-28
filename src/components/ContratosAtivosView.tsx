@@ -3176,9 +3176,18 @@ export default function ContratosAtivosView() {
                 {/* 1. Header Block */}
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "16px", paddingBottom: "8px" }}>
                   <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
-                    <div style={{ width: "44px", height: "44px", borderRadius: "10px", backgroundColor: "#0f172a", display: "flex", alignItems: "center", justifyContent: "center", color: "#D9A441", fontWeight: 900, fontSize: "18px" }}>
-                      PP
-                    </div>
+                    {localStorage.getItem("logo_url") ? (
+                      <img
+                        src={localStorage.getItem("logo_url")!}
+                        alt="Logo"
+                        crossOrigin="anonymous"
+                        style={{ width: "44px", height: "44px", objectFit: "contain" }}
+                      />
+                    ) : (
+                      <div style={{ width: "44px", height: "44px", borderRadius: "10px", backgroundColor: "#0f172a", display: "flex", alignItems: "center", justifyContent: "center", color: "#D9A441", fontWeight: 900, fontSize: "18px" }}>
+                        PP
+                      </div>
+                    )}
                     <div style={{ borderLeft: "2px solid #000000", paddingLeft: "12px" }}>
                       <h2 style={{ fontSize: "16px", fontWeight: 900, color: "#000000", textTransform: "uppercase", margin: 0, lineHeight: 1 }}>PERSONALIZA PROJETOS</h2>
                       <p style={{ fontSize: "8px", fontWeight: 900, color: "#ea580c", textTransform: "uppercase", margin: "2px 0 0 0", letterSpacing: "1px" }}>Soluções Arquitetônicas Inteligentes</p>

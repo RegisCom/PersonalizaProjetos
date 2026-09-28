@@ -624,13 +624,35 @@ function AppContent() {
     }
   }, [activeView]);
 
-  // Read logo_url from query param or localStorage to support dynamic branding overrides
+  // Fetch branding (logo & favicon) configured via environment variables from server, with query param / localStorage fallback
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const customUrl = params.get("logo_url") || localStorage.getItem("logo_url");
-    if (customUrl) {
-      setLogoUrl(customUrl);
-    }
+    fetch("/api/branding")
+      .then(res => res.json())
+      .then(data => {
+        if (data.logoUrl) {
+          setLogoUrl(data.logoUrl);
+          localStorage.setItem("logo_url", data.logoUrl);
+        } else {
+          const params = new URLSearchParams(window.location.search);
+          const customUrl = params.get("logo_url") || localStorage.getItem("logo_url");
+          if (customUrl) setLogoUrl(customUrl);
+        }
+
+        if (data.faviconUrl) {
+          let link = document.querySelector("link[rel*='icon']") as HTMLLinkElement;
+          if (!link) {
+            link = document.createElement("link");
+            link.rel = "shortcut icon";
+            document.head.appendChild(link);
+          }
+          link.href = data.faviconUrl;
+        }
+      })
+      .catch(() => {
+        const params = new URLSearchParams(window.location.search);
+        const customUrl = params.get("logo_url") || localStorage.getItem("logo_url");
+        if (customUrl) setLogoUrl(customUrl);
+      });
   }, []);
 
   // Automatically close session expired modal when logging in successfully
