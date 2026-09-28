@@ -1407,8 +1407,17 @@ async function bootstrap() {
   app.use("/api", (req, res, next) => {
     // /health and /login are defined before this middleware, so they won't even hit it, 
     // but we add them here for safety.
-    const publicRoutes = ["/health", "/login", "/db/status", "/db/sync", "/public/enviar-codigo", "/public/alterar-senha"];
-    if (publicRoutes.includes(req.path)) {
+    const publicRoutes = [
+      "/health",
+      "/login",
+      "/db/status",
+      "/db/sync",
+      "/public/enviar-codigo",
+      "/public/alterar-senha",
+      "/branding",
+      "/branding/logo"
+    ];
+    if (publicRoutes.includes(req.path) || req.path.startsWith("/branding")) {
       return next();
     }
     return requireAuth(req, res, next);
