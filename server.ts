@@ -1,12 +1,25 @@
 import dotenv from "dotenv";
-dotenv.config({ path: ".env.production", override: true });
-dotenv.config({ override: true }); // fall back to standard .env if needed
+import path from "path";
+import fs from "fs";
+
+// Load environment variables from .env file or a folder named .env (e.g. .env/.env or .env)
+const envPaths = [
+  path.join(process.cwd(), ".env.production"),
+  path.join(process.cwd(), ".env"),
+  path.join(process.cwd(), ".env", ".env"),
+  path.join(process.cwd(), ".env", "config"),
+];
+
+for (const p of envPaths) {
+  if (fs.existsSync(p) && fs.statSync(p).isFile()) {
+    dotenv.config({ path: p, override: true });
+  }
+}
+dotenv.config({ override: true });
 
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 
 // ================= BOOT DIAGNOSTICS & SYSTEM AUDIT =================
-import path from "path";
-import fs from "fs";
 import pg from "pg";
 import crypto from "crypto";
 import compression from "compression";
@@ -1456,7 +1469,7 @@ async function bootstrap() {
     }
   });
 
-  // Proxy /api/branding/logo - Streams the S3 bucket image (Imagens-Bucket/projeto.jpeg) using S3_URL from .env
+  // Proxy /api/branding/logo - Streams the S3 bucket image (Imagens-Bucket/Projeto.jpeg) using S3_URL from .env
   app.get("/api/branding/logo", async (req, res) => {
     try {
       const s3Url = (process.env.S3_URL || "").trim();
@@ -1465,14 +1478,22 @@ async function bootstrap() {
         return res.status(404).send("S3_URL not configured");
       }
 
-      // Format target S3 URL directly using Imagens-Bucket and projeto.jpeg
+      // Format target S3 URL directly using Imagens-Bucket and Projeto.jpeg
       const cleanBase = s3Url.endsWith("/") ? s3Url.slice(0, -1) : s3Url;
       const targetUrl = cleanBase.includes("Imagens-Bucket")
-        ? `${cleanBase}/projeto.jpeg`
-        : `${cleanBase}/Imagens-Bucket/projeto.jpeg`;
+        ? `${cleanBase}/Projeto.jpeg`
+        : `${cleanBase}/Imagens-Bucket/Projeto.jpeg`;
 
-      // Fetch from S3 endpoint and pipe directly to client
-      const response = await fetch(targetUrl);
+      // Fetch from public S3 endpoint and pipe directly to client
+      let response = await fetch(targetUrl);
+      if (!response.ok) {
+        // Fallback for lowercase filename
+        const fallbackUrl = cleanBase.includes("Imagens-Bucket")
+          ? `${cleanBase}/projeto.jpeg`
+          : `${cleanBase}/Imagens-Bucket/projeto.jpeg`;
+        response = await fetch(fallbackUrl);
+      }
+
       if (!response.ok) {
         return res.status(response.status).send(`Failed to fetch from S3: ${response.statusText}`);
       }
@@ -1489,7 +1510,7 @@ async function bootstrap() {
     }
   });
 
-  // GET /api/branding - Returns logo and favicon pointing to the S3 image
+  // GET /api/branding - Returns logo and favicon pointing to public S3 image
   app.get("/api/branding", (req, res) => {
     const s3Url = (process.env.S3_URL || "").trim();
 
@@ -1497,9 +1518,14 @@ async function bootstrap() {
     let faviconUrl = "";
 
     if (s3Url) {
-      // Use internal proxy endpoint so browser avoids CORS/credentials issues
-      logoUrl = "/api/branding/logo";
-      faviconUrl = "/api/branding/logo";
+      const cleanBase = s3Url.endsWith("/") ? s3Url.slice(0, -1) : s3Url;
+      // Direct public URL to the bucket
+      const directPublicUrl = cleanBase.includes("Imagens-Bucket")
+        ? `${cleanBase}/Projeto.jpeg`
+        : `${cleanBase}/Imagens-Bucket/Projeto.jpeg`;
+
+      logoUrl = directPublicUrl;
+      faviconUrl = directPublicUrl;
     }
 
     res.json({

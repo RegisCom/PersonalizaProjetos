@@ -231,14 +231,14 @@ export default function LoginView() {
                   onError={() => setLogoUrl(null)}
                 />
               ) : (
-                <div className="w-16 h-16 rounded-2xl bg-slate-900 border border-slate-800 flex items-center justify-center text-[#D9A441] font-black text-2xl shadow-md">
+                <div className="w-16 h-16 rounded-2xl bg-[#5f6f52] border border-[#4a5740] flex items-center justify-center text-[#a9b388] font-black text-2xl shadow-md">
                   PP
                 </div>
               )}
             </div>
             <div className="text-center space-y-1">
               <h1 className="text-2xl font-black tracking-wider text-slate-800 leading-none">PERSONALIZA PROJETOS</h1>
-              <p className="text-[10px] font-extrabold text-[#D9A441] uppercase tracking-widest leading-none">Gestão de Custos</p>
+              <p className="text-[10px] font-extrabold text-[#5f6f52] uppercase tracking-widest leading-none">Gestão de Custos</p>
             </div>
           </div>
 
