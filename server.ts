@@ -1148,14 +1148,14 @@ async function bootstrap() {
       let cleanBase = s3Url.endsWith("/") ? s3Url.slice(0, -1) : s3Url;
 
       // Handle Supabase storage public URL formatting:
-      // If user provides base URL like https://xyz.supabase.co, map to /storage/v1/object/public/Imagens-Bucket/Projeto.jpeg
+      // If user provides base URL like https://xyz.supabase.co, map to /storage/v1/object/public/Imagens-Bucket/Projeto2.jpeg
       let targetUrl = "";
       if (cleanBase.includes("supabase.co") && !cleanBase.includes("/storage/v1/object/public")) {
-        targetUrl = `${cleanBase}/storage/v1/object/public/Imagens-Bucket/Projeto.jpeg`;
+        targetUrl = `${cleanBase}/storage/v1/object/public/Imagens-Bucket/Projeto2.jpeg`;
       } else if (cleanBase.includes("Imagens-Bucket")) {
-        targetUrl = cleanBase.endsWith("Projeto.jpeg") ? cleanBase : `${cleanBase}/Projeto.jpeg`;
+        targetUrl = cleanBase.endsWith("Projeto2.jpeg") ? cleanBase : `${cleanBase}/Projeto2.jpeg`;
       } else {
-        targetUrl = `${cleanBase}/Imagens-Bucket/Projeto.jpeg`;
+        targetUrl = `${cleanBase}/Imagens-Bucket/Projeto2.jpeg`;
       }
 
       return res.json({
@@ -1177,11 +1177,11 @@ async function bootstrap() {
     if (s3Url) {
       const cleanBase = s3Url.endsWith("/") ? s3Url.slice(0, -1) : s3Url;
       if (cleanBase.includes("supabase.co") && !cleanBase.includes("/storage/v1/object/public")) {
-        targetUrl = `${cleanBase}/storage/v1/object/public/Imagens-Bucket/Projeto.jpeg`;
+        targetUrl = `${cleanBase}/storage/v1/object/public/Imagens-Bucket/Projeto2.jpeg`;
       } else if (cleanBase.includes("Imagens-Bucket")) {
-        targetUrl = cleanBase.endsWith("Projeto.jpeg") ? cleanBase : `${cleanBase}/Projeto.jpeg`;
+        targetUrl = cleanBase.endsWith("Projeto2.jpeg") ? cleanBase : `${cleanBase}/Projeto2.jpeg`;
       } else {
-        targetUrl = `${cleanBase}/Imagens-Bucket/Projeto.jpeg`;
+        targetUrl = `${cleanBase}/Imagens-Bucket/Projeto2.jpeg`;
       }
     }
     return res.json({
