@@ -1,0 +1,1585 @@
+import { useState, useMemo, useEffect } from "react";
+import { createPortal } from "react-dom";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  Coins,
+  Plus,
+  Search,
+  Calendar,
+  Layers,
+  ArrowRight,
+  CheckCircle,
+  Clock,
+  AlertTriangle,
+  Send,
+  Trash2,
+  Edit,
+  SlidersHorizontal,
+  X,
+  Tag,
+  RotateCcw
+} from "lucide-react";
+import { motion, AnimatePresence } from "motion/react";
+import { useUIStore, useAuthStore } from "../store";
+import { Levantamento, Material, LevantamentoSubestrutura } from "../types";
+
+const MONTH_NAMES = [
+  "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho",
+  "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"
+];
+
+// Helper to convert any input date string to Brazilian format DD/MM/YYYY
+function convertDateToBR(dateStr: string): string {
+  if (!dateStr || typeof dateStr !== "string") return "";
+  
+  const clean = dateStr.trim();
+  
+  // Try matching standard ISO format YYYY-MM-DD or YYYY/MM/DD
+  const isoMatch = clean.match(/^(\d{4})[-/](\d{2})[-/](\d{2})$/);
+  if (isoMatch) {
+    const [_, year, month, day] = isoMatch;
+    return `${day}/${month}/${year}`;
+  }
+  
+  // Match DD/MM/YYYY or MM/DD/YYYY formats
+  const slashesMatch = clean.match(/^(\d{1,2})[-/](\d{1,2})[-/](\d{4})$/);
+  if (slashesMatch) {
+    const [_, part1, part2, year] = slashesMatch;
+    const p1 = parseInt(part1, 10);
+    const p2 = parseInt(part2, 10);
+    
+    if (p1 > 12) {
+      // Must be DD/MM/YYYY
+      const day = String(p1).padStart(2, "0");
+      const month = String(p2).padStart(2, "0");
+      return `${day}/${month}/${year}`;
+    } else if (p2 > 12) {
+      // Must be MM/DD/YYYY (American) since month cannot be > 12
+      const day = String(p2).padStart(2, "0");
+      const month = String(p1).padStart(2, "0");
+      return `${day}/${month}/${year}`;
+    } else {
+      // Both are <= 12. Format neatly as DD/MM/YYYY
+      const day = String(p1).padStart(2, "0");
+      const month = String(p2).padStart(2, "0");
+      return `${day}/${month}/${year}`;
+    }
+  }
+  
+  // Try JavaScript Date parser
+  const parsed = new Date(clean);
+  if (!isNaN(parsed.getTime())) {
+    const day = String(parsed.getDate()).padStart(2, "0");
+    const month = String(parsed.getMonth() + 1).padStart(2, "0");
+    const year = parsed.getFullYear();
+    return `${day}/${month}/${year}`;
+  }
+  
+  return clean;
+}
+
+function getMonthGroup(dateStr: string) {
+  if (!dateStr) return "Outros / Em aberto";
+  const brDate = convertDateToBR(dateStr);
+  
+  // Try DD/MM/AAAA
+  const parts = brDate.split("/");
+  if (parts.length === 3) {
+    const mIdx = parseInt(parts[1], 10) - 1;
+    const year = parts[2];
+    if (mIdx >= 0 && mIdx < 12) {
+      return `${MONTH_NAMES[mIdx]} ${year}`;
+    }
+  }
+  
+  return "Outros / Em aberto";
+}
+
+// Flexible dynamic date input handler allowing free editing, middle insertions/deletions without cursor displacement
+const handleDateInputChange = (
+  e: React.ChangeEvent<HTMLInputElement>,
+  setter: (val: string) => void
+) => {
+  let val = e.target.value;
+  
+  // Identify if user is deleting/backspacing
+  const isDeleting = (e.nativeEvent as any)?.inputType?.includes("delete") || false;
+  
+  // Only allow digits and slashes
+  val = val.replace(/[^0-9/]/g, "").slice(0, 10);
+  
+  const digits = val.replace(/\D/g, "");
+  
+  if (!isDeleting) {
+    if (digits.length > 0) {
+      if (digits.length <= 2) {
+        val = digits;
+      } else if (digits.length <= 4) {
+        val = `${digits.slice(0, 2)}/${digits.slice(2)}`;
+      } else {
+        val = `${digits.slice(0, 2)}/${digits.slice(2, 4)}/${digits.slice(4, 8)}`;
+      }
+    }
+  }
+  
+  setter(val);
+};
+
+// Validate that the date is 100% complete with DD/MM/AAAA format
+function isValidDateFull(dateStr: string): boolean {
+  if (!dateStr) return false;
+  const regex = /^\d{2}\/\d{2}\/\d{4}$/;
+  if (!regex.test(dateStr)) return false;
+  
+  const parts = dateStr.split("/");
+  const d = parseInt(parts[0], 10);
+  const m = parseInt(parts[1], 10);
+  const y = parseInt(parts[2], 10);
+  
+  if (m < 1 || m > 12) return false;
+  if (d < 1 || d > 31) return false;
+  if (y < 2000 || y > 2100) return false;
+  
+  return true;
+}
+
+export default function LevantamentosView() {
+  const queryClient = useQueryClient();
+  const navigateToProject = useUIStore((state) => state.navigateToProject);
+  const { hasPermission } = useAuthStore();
+
+  const canEdit = hasPermission("modulos", "levantamentosOrcamentos", "editar") && hasPermission("acoes", "editar");
+
+  // Filter States
+  const [filterCliente, setFilterCliente] = useState("");
+  const [filterSolicitante, setFilterSolicitante] = useState("");
+  const [filterResponsavel, setFilterResponsavel] = useState("");
+  const [filterStatus, setFilterStatus] = useState("");
+  const [showLixeira, setShowLixeira] = useState(false);
+  const [stickyColumns, setStickyColumns] = useState(false);
+  const [selectedMonthGroup, setSelectedMonthGroup] = useState<string>("Todos");
+
+  // Modals States
+  const [isSurveyModalOpen, setIsSurveyModalOpen] = useState(false);
+  const [editingSurvey, setEditingSurvey] = useState<Levantamento | null>(null);
+  const [deleteConfirmationId, setDeleteConfirmationId] = useState<string | null>(null);
+  const [permanentDeleteConfirmationId, setPermanentDeleteConfirmationId] = useState<string | null>(null);
+
+  // Survey Form States
+  const [formObra, setFormObra] = useState("");
+  const [formCliente, setFormCliente] = useState("");
+  const [formDataSolicitacao, setFormDataSolicitacao] = useState("");
+  const [formAbc, setFormAbc] = useState("");
+  const [formSolicitante, setFormSolicitante] = useState("");
+  const [formResponsavel, setFormResponsavel] = useState<"Andrew" | "Mayra">("Mayra");
+  const [formStatus, setFormStatus] = useState<"Concluído" | "Em Desenvolvimento" | "Pendente">("Pendente");
+  const [formPrevisao, setFormPrevisao] = useState("");
+  const [formStatusEnvio, setFormStatusEnvio] = useState<"Enviado" | "Proposta a Enviar">("Proposta a Enviar");
+  const [formOrigemLeads, setFormOrigemLeads] = useState<"Hunter Douglas" | "Personaliza Projetos" | "Projeto Certo">("Personaliza Projetos");
+  
+  // Dynamic list of multiple materials / subestruturas
+  const [formSubestruturas, setFormSubestruturas] = useState<{ id?: string; material: string; qtdHD: string; valorUnitario: string; unidade?: string }[]>([]);
+  const [formSubestruturasPC, setFormSubestruturasPC] = useState<{ material: string; qtdPC: string; valorUnitario: string }[]>([]);
+
+  // Selection state for levantamentos list
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+
+  // ESC key press listener to clear selection
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setSelectedIds(new Set());
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, []);
+
+  const [conversionSuccess, setConversionSuccess] = useState<{
+    open: boolean;
+    contractId: string;
+    ref: string;
+    obra: string;
+  } | null>(null);
+
+  const [alertPopupOpen, setAlertPopupOpen] = useState(false);
+  const [tooltip, setTooltip] = useState<{
+    visible: boolean;
+    content: React.ReactNode;
+    x: number;
+    y: number;
+    placement: 'top' | 'bottom';
+  }>({ visible: false, content: null, x: 0, y: 0, placement: 'bottom' });
+
+  const handleMouseEnter = (e: React.MouseEvent, content: React.ReactNode) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const tooltipWidth = 384; // w-96
+    let x = rect.left + window.scrollX;
+    
+    // Prevent horizontal overflow
+    if (x + tooltipWidth > window.innerWidth + window.scrollX - 20) {
+      x = window.innerWidth + window.scrollX - tooltipWidth - 20;
+    }
+    if (x < 10) x = 10;
+
+    // Detect if we should flip to top
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const placement = spaceBelow < 350 ? 'top' : 'bottom';
+
+    setTooltip({
+      visible: true,
+      content,
+      x,
+      y: placement === 'bottom' ? rect.bottom + window.scrollY + 8 : rect.top + window.scrollY - 8,
+      placement,
+    });
+  };
+  const handleMouseLeave = () => setTooltip({ ...tooltip, visible: false });
+
+  // Queries
+  const { data: levantamentos = [], isLoading: isLevLoading } = useQuery<Levantamento[]>({
+    queryKey: ["levantamentos"],
+    queryFn: async () => {
+      const res = await fetch("/api/levantamentos");
+      if (!res.ok) throw new Error("Erro de servidor ao buscar levantamentos");
+      return res.json();
+    }
+  });
+
+  const monthGroups = useMemo(() => {
+    const groups = new Set<string>();
+    levantamentos.forEach(lev => {
+      if (lev.status !== "EXCLUIDO") {
+        const brDate = convertDateToBR(lev.dataSolicitacao);
+        const group = getMonthGroup(brDate);
+        if (group && group !== "Outros / Em aberto") {
+          groups.add(group);
+        }
+      }
+    });
+
+    const sorted = Array.from(groups).sort((a, b) => {
+      const partsA = a.split(" ");
+      const partsB = b.split(" ");
+      if (partsA.length === 2 && partsB.length === 2) {
+        const yearA = parseInt(partsA[1], 10);
+        const yearB = parseInt(partsB[1], 10);
+        if (yearA !== yearB) return yearA - yearB; // ascending order of years (older first)
+        
+        const mIdxA = MONTH_NAMES.indexOf(partsA[0]);
+        const mIdxB = MONTH_NAMES.indexOf(partsB[0]);
+        return mIdxA - mIdxB; // ascending order of months (older first)
+      }
+      return a.localeCompare(b);
+    });
+
+    return ["Todos", ...sorted];
+  }, [levantamentos]);
+
+  const allDatabaseSolicitantes = useMemo(() => {
+    const options = new Set<string>();
+    levantamentos.forEach((lev) => {
+      if (lev.solicitante) options.add(lev.solicitante.trim());
+    });
+    return Array.from(options).sort();
+  }, [levantamentos]);
+
+  const solicitanteOptions = useMemo(() => {
+    const options = new Set<string>();
+    levantamentos.forEach((lev) => {
+      // Trash filter
+      if (showLixeira) {
+        if (lev.status !== "EXCLUIDO") return;
+      } else {
+        if (lev.status === "EXCLUIDO") return;
+      }
+      // 2. Client search
+      if (filterCliente && !lev.cliente.toLowerCase().includes(filterCliente.toLowerCase()) && !lev.obra.toLowerCase().includes(filterCliente.toLowerCase())) {
+        return;
+      }
+      // 4. Responsavel
+      if (filterResponsavel && lev.responsavel !== filterResponsavel) {
+        return;
+      }
+      // 4. Status
+      if (filterStatus && lev.status !== filterStatus) {
+        return;
+      }
+      // 5. Month/Year tab filter
+      if (selectedMonthGroup !== "Todos") {
+        const brDate = convertDateToBR(lev.dataSolicitacao);
+        if (getMonthGroup(brDate) !== selectedMonthGroup) {
+          return;
+        }
+      }
+      
+      if (lev.solicitante) options.add(lev.solicitante.trim());
+    });
+    return Array.from(options).sort();
+  }, [levantamentos, showLixeira, filterCliente, filterResponsavel, filterStatus, selectedMonthGroup]);
+  const filteredLevantamentos = useMemo(() => {
+    return levantamentos.filter(lev => {
+      // Trash filter
+      if (showLixeira) {
+        if (lev.status !== "EXCLUIDO") return false;
+      } else {
+        if (lev.status === "EXCLUIDO") return false;
+      }
+      // 2. Client search
+      if (filterCliente && !lev.cliente.toLowerCase().includes(filterCliente.toLowerCase()) && !lev.obra.toLowerCase().includes(filterCliente.toLowerCase())) {
+        return false;
+      }
+      // 3. Solicitante
+      const sol = lev.solicitante || (lev as any).Solicitante;
+      if (filterSolicitante && sol && sol.trim().toLowerCase() !== filterSolicitante.toLowerCase()) {
+        return false;
+      }
+      // 4. Responsavel
+      if (filterResponsavel && lev.responsavel !== filterResponsavel) {
+        return false;
+      }
+      // 4. Status
+      if (filterStatus && lev.status !== filterStatus) {
+        return false;
+      }
+      // 5. Month/Year tab filter
+      if (selectedMonthGroup !== "Todos") {
+        const brDate = convertDateToBR(lev.dataSolicitacao);
+        if (getMonthGroup(brDate) !== selectedMonthGroup) {
+          return false;
+        }
+      }
+      return true;
+    });
+  }, [levantamentos, filterCliente, filterSolicitante, filterResponsavel, filterStatus, showLixeira, selectedMonthGroup]);
+
+  // Total metros quadrados dynamic KPI summation (only Material HD)
+  const sortedLevantamentos = useMemo(() => {
+    let sorted = [...filteredLevantamentos];
+    if (selectedMonthGroup !== "Todos") {
+      sorted.sort((a, b) => a.ref.localeCompare(b.ref, undefined, { numeric: true, sensitivity: 'base' }));
+    }
+    return sorted;
+  }, [filteredLevantamentos, selectedMonthGroup]);
+
+  // Total metros quadrados dynamic KPI summation (only Material HD)
+  const totalMetrosQuadrados = useMemo(() => {
+    return sortedLevantamentos.reduce((acc, current) => {
+      const subsHD = current.subestruturas || [];
+      return acc + subsHD.reduce((itemSum, s) => {
+        const q = s.qtdHD !== undefined ? s.qtdHD : (s.qtdM2 || 0);
+        return itemSum + (Number(q) || 0);
+      }, 0);
+    }, 0);
+  }, [sortedLevantamentos]);
+
+  // Safe helper to obtain sum value for a single row (only Material HD)
+  const getLevantamentoTotalVal = (lev: Levantamento): number => {
+    const subsHD = lev.subestruturas || [];
+    
+    const hdVal = subsHD.reduce((sum, s) => {
+      const q = s.qtdHD !== undefined ? s.qtdHD : (s.qtdM2 || 0);
+      return sum + ((Number(q) || 0) * (Number(s.valorUnitario) || 0));
+    }, 0);
+
+    return hdVal;
+  };
+
+  // Total monetário valor calculated as summation of (qtd * unit price) for filtered subset
+  const totalValueSum = useMemo(() => {
+    return sortedLevantamentos.reduce((acc, current) => {
+      return acc + getLevantamentoTotalVal(current);
+    }, 0);
+  }, [sortedLevantamentos]);
+
+  // Reset filter criteria fields
+  const clearFilters = () => {
+    setFilterCliente("");
+    setFilterSolicitante("");
+    setFilterResponsavel("");
+    setFilterStatus("");
+    setShowLixeira(false);
+    setSelectedMonthGroup("Todos");
+  };
+
+  // --- MUTATIONS ---
+  
+  // Create / Edit Survey
+  const saveSurveyMutation = useMutation({
+    mutationFn: async (payload: Partial<Levantamento>) => {
+      const url = editingSurvey ? `/api/levantamentos/${editingSurvey.id}` : "/api/levantamentos";
+      const method = editingSurvey ? "PUT" : "POST";
+      const res = await fetch(url, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || "Erro de servidor ao salvar levantamento");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["levantamentos"] });
+      setIsSurveyModalOpen(false);
+      setEditingSurvey(null);
+    },
+    onError: (err: any) => {
+      alert("Falha ao salvar registro: " + err.message);
+    }
+  });
+
+  // Delete Survey
+  const deleteSurveyMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/levantamentos/${id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Erro de servidor ao excluir registro");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["levantamentos"] });
+    },
+    onError: (err: any) => {
+      alert("Falha ao excluir registro: " + err.message);
+    }
+  });
+
+  // Restore Survey
+  const restoreSurveyMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/levantamentos/${id}/restaurar`, { method: "POST" });
+      if (!res.ok) throw new Error("Erro de servidor ao restaurar registro");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["levantamentos"] });
+    },
+    onError: (err: any) => {
+      alert("Falha ao restaurar registro: " + err.message);
+    }
+  });
+
+  // Permanent Delete Survey
+  const permanentDeleteSurveyMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/levantamentos/${id}?permanent=true`, { method: "DELETE" });
+      if (!res.ok) throw new Error("Erro de servidor ao excluir permanentemente");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["levantamentos"] });
+    },
+    onError: (err: any) => {
+      alert("Falha ao excluir permanentemente: " + err.message);
+    }
+  });
+
+  // Convert to Orçamento a Fechar
+  const convertToContractMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const res = await fetch(`/api/levantamentos/${id}/enviar-contrato`, { method: "POST" });
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || "Erro de servidor ao converter para Orçamento a Fechar");
+      }
+      return res.json();
+    },
+    onSuccess: (data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["levantamentos"] });
+      queryClient.invalidateQueries({ queryKey: ["obras"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard"] });
+      
+      const original = levantamentos.find(l => l.id === variables);
+      if (original) {
+        setConversionSuccess({
+          open: true,
+          contractId: data.contratoAFecharId,
+          ref: original.ref,
+          obra: original.obra
+        });
+      }
+    },
+    onError: (err: any) => {
+      alert("Erro ao enviar: " + err.message);
+    }
+  });
+
+  // Update status de envio
+  const updateStatusEnvioMutation = useMutation({
+    mutationFn: async ({ id, statusEnvio }: { id: string; statusEnvio: "Enviado" | "Proposta a Enviar" }) => {
+      const res = await fetch(`/api/levantamentos/${id}/status-envio`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ statusEnvio })
+      });
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.error || "Erro de servidor ao atualizar status de envio");
+      }
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["levantamentos"] });
+    },
+    onError: (err: any) => {
+      alert("Falha ao atualizar status de envio: " + err.message);
+    }
+  });
+
+  // Setup modal for adding
+  const handleOpenAddSurveyModal = () => {
+    setEditingSurvey(null);
+    setFormObra("");
+    setFormCliente("");
+    
+    // Default today formatted as DD/MM/AAAA
+    const today = new Date();
+    const dd = String(today.getDate()).padStart(2, "0");
+    const mm = String(today.getMonth() + 1).padStart(2, "0");
+    const yyyy = today.getFullYear();
+    setFormDataSolicitacao(`${dd}/${mm}/${yyyy}`);
+    
+    setFormAbc("C");
+    setFormSolicitante("");
+    setFormResponsavel("Mayra");
+    setFormStatus("Pendente");
+    setFormPrevisao("");
+    setFormStatusEnvio("Proposta a Enviar");
+    setFormOrigemLeads("Personaliza Projetos");
+    
+    // Default with empty materials
+    setFormSubestruturas([
+      { material: "", qtdHD: "", valorUnitario: "" }
+    ]);
+    setFormSubestruturasPC([]);
+    
+    setIsSurveyModalOpen(true);
+  };
+
+  // Setup modal for editing
+  const formatInputVal = (val: any) => {
+    if (val === undefined || val === null || val === "") return "";
+    const num = Number(val);
+    if (isNaN(num)) return String(val);
+    return num.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  };
+
+  const handleOpenEditSurveyModal = (survey: Levantamento) => {
+    setEditingSurvey(survey);
+    setFormObra(survey.obra);
+    setFormCliente(survey.cliente || "");
+    setFormDataSolicitacao(convertDateToBR(survey.dataSolicitacao));
+    setFormAbc(survey.abc || "");
+    setFormSolicitante(survey.solicitante || "");
+    setFormResponsavel(survey.responsavel);
+    setFormStatus(survey.status === "EXCLUIDO" ? "Pendente" : survey.status);
+    setFormPrevisao(survey.previsao ? convertDateToBR(survey.previsao) : "");
+    setFormStatusEnvio(survey.statusEnvio);
+    setFormOrigemLeads((survey.origemLeads === "Projeto Certo" ? "Personaliza Projetos" : survey.origemLeads) || "Personaliza Projetos");
+    
+    if (survey.subestruturas && survey.subestruturas.length > 0) {
+      setFormSubestruturas(survey.subestruturas.map(s => ({
+        id: s.id || undefined,
+        material: typeof s.material === 'object' && s.material !== null ? (s.material as any).descricao : (s.material || ""),
+        qtdHD: formatInputVal(s.qtdHD !== undefined ? s.qtdHD : (s.qtdM2 || "")),
+        valorUnitario: formatInputVal(s.valorUnitario || "0"),
+        unidade: s.unidade || "Metro Quadrado"
+      })));
+    } else {
+      setFormSubestruturas([
+        { material: "", qtdHD: "", valorUnitario: "", unidade: "Metro Quadrado" }
+      ]);
+    }
+
+    if (survey.subestruturas_pc && survey.subestruturas_pc.length > 0) {
+      setFormSubestruturasPC(survey.subestruturas_pc.map(s => ({
+        material: s.material || "",
+        qtdPC: formatInputVal(s.qtdPC || ""),
+        valorUnitario: formatInputVal(s.valorUnitario || "0")
+      })));
+    } else {
+      setFormSubestruturasPC([]);
+    }
+    
+    setIsSurveyModalOpen(true);
+  };
+
+  const handleSubmitSurveyForm = (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!formObra) {
+      alert("Preencha todos os campos obrigatórios marcados com * (Obra)");
+      return;
+    }
+
+    // Validate that dates are fully typed DD/MM/AAAA if provided
+    if (formDataSolicitacao && !isValidDateFull(formDataSolicitacao)) {
+      alert("Por favor, preencha a Data de Solicitação completa no formato DD/MM/AAAA (ex: 02/02/2026) ou deixe em branco.");
+      return;
+    }
+
+    if (formPrevisao && !isValidDateFull(formPrevisao)) {
+      alert("Por favor, preencha a Data de Previsão completa no formato DD/MM/AAAA (ex: 05/02/2026).");
+      return;
+    }
+
+    // Material HD checks (optional)
+    const validSubestruturas = [];
+    for (let i = 0; i < formSubestruturas.length; i++) {
+      const item = formSubestruturas[i];
+      if (item.material || item.qtdHD) {
+        if (!item.qtdHD) {
+          alert("Insira a quantidade (Qtd HD) para os materiais HD preenchidos.");
+          return;
+        }
+        validSubestruturas.push(item);
+      }
+    }
+
+
+
+    // Format subestruturas payload
+    const processedSubs = validSubestruturas.map(item => {
+      const rawQty = item.qtdHD ? String(item.qtdHD).trim().replace(/\./g, "").replace(",", ".") : "";
+      const rawVal = item.valorUnitario ? String(item.valorUnitario).trim().replace(/\./g, "").replace(",", ".") : "";
+      const q = rawQty ? parseFloat(rawQty) : 0;
+      const v = rawVal ? parseFloat(rawVal) : 0;
+
+      return {
+        id: item.id || undefined,
+        material: item.material || "",
+        qtdHD: isNaN(q) ? 0 : q,
+        qtdM2: isNaN(q) ? 0 : q, // backward compatibility fallback
+        valorUnitario: isNaN(v) ? 0 : v,
+        unidade: item.unidade || "Metro Quadrado"
+      };
+    });
+
+    // Format subestruturas PC payload
+    const processedSubsPC = formSubestruturasPC.map(item => {
+      const rawQty = item.qtdPC ? String(item.qtdPC).trim().replace(/\./g, "").replace(",", ".") : "";
+      const rawVal = item.valorUnitario ? String(item.valorUnitario).trim().replace(/\./g, "").replace(",", ".") : "";
+      const q = rawQty ? parseFloat(rawQty) : 0;
+      const v = rawVal ? parseFloat(rawVal) : 0;
+      return {
+        material: item.material || "",
+        qtdPC: isNaN(q) ? 0 : q,
+        valorUnitario: isNaN(v) ? 0 : v
+      };
+    });
+
+    const payload: Partial<Levantamento> = {
+      obra: formObra,
+      cliente: formCliente,
+      dataSolicitacao: formDataSolicitacao,
+      abc: formAbc,
+      solicitante: formSolicitante,
+      responsavel: formResponsavel,
+      status: formStatus,
+      previsao: formPrevisao,
+      subestruturas: processedSubs,
+      subestruturas_pc: [],
+      statusEnvio: formStatusEnvio,
+      origemLeads: formOrigemLeads
+    };
+
+    saveSurveyMutation.mutate(payload);
+  };
+
+  return (
+    <div className="space-y-6" id="levantamentos_view_container">
+      {/* HEADER SECTION */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-black text-brand-text-primary tracking-tight flex items-center gap-2">
+            <Coins className="w-6 h-6 text-[#D9A441]" />
+            Levantamentos & Orçamentos
+          </h1>
+        </div>
+        <div className="flex flex-wrap gap-2.5">
+          {canEdit && (
+            <button
+              onClick={handleOpenAddSurveyModal}
+              className="px-4 py-2 bg-brand-primary hover:bg-brand-secondary text-white text-xs font-bold rounded-xl inline-flex items-center gap-2 transition-colors cursor-pointer shadow-sm hover:shadow"
+              id="btn_novo_levantamento"
+            >
+              <Plus className="w-4 h-4 text-brand-accent shrink-0" />
+              Novo Levantamento
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Sub-tabs for Active vs. Lixeira (Deleted) */}
+      <div className="flex border-b border-slate-100 gap-6 pb-0.5">
+        <button
+          onClick={() => setShowLixeira(false)}
+          className={`pb-3 text-xs font-black uppercase tracking-wider transition-all border-b-2 cursor-pointer ${
+            !showLixeira 
+              ? "border-brand-primary text-brand-primary font-black" 
+              : "border-transparent text-slate-400 hover:text-slate-600 font-semibold"
+          }`}
+        >
+          Ativos
+        </button>
+        <button
+          onClick={() => setShowLixeira(true)}
+          className={`pb-3 text-xs font-black uppercase tracking-wider transition-all border-b-2 cursor-pointer flex items-center gap-1.5 ${
+            showLixeira 
+              ? "border-red-500 text-red-600 font-black" 
+              : "border-transparent text-slate-400 hover:text-slate-600 font-semibold"
+          }`}
+        >
+          <Trash2 className="w-3.5 h-3.5 text-red-400" />
+          Lixeira (Excluídos)
+        </button>
+      </div>
+
+      {/* UPPER KPI CARDS */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between"
+          id="kpi_total_metros"
+        >
+          <div className="space-y-1.5">
+            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest font-mono">Total metros e valores</span>
+            <div className="text-3xl font-black text-brand-primary tracking-tight font-sans">
+              {totalMetrosQuadrados.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} m²
+            </div>
+          </div>
+          <div className="w-12 h-12 bg-[#D9A441]/10 rounded-full flex items-center justify-center">
+            <Layers className="w-5 h-5 text-[#D9A441]" />
+          </div>
+        </motion.div>
+
+        {/* Dynamic Count of States */}
+        <div className="p-6 bg-white rounded-2xl border border-slate-100 shadow-sm flex items-center justify-between">
+          <div className="space-y-1 w-full">
+            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-widest font-mono">Status do Mês</span>
+            <div className="flex flex-wrap items-center gap-3 pt-2">
+              <span className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1 bg-green-50 text-green-700 border border-green-100 rounded-lg">
+                <CheckCircle className="w-3.5 h-3.5" />
+                Concluído: {filteredLevantamentos.filter(l => l.status === "Concluído").length}
+              </span>
+              <span className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1 bg-amber-50 text-amber-700 border border-amber-100 rounded-lg font-sans">
+                <Clock className="w-3.5 h-3.5 animate-pulse" />
+                Em Desenvolvimento: {filteredLevantamentos.filter(l => l.status === "Em Desenvolvimento").length}
+              </span>
+              <span className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1 bg-slate-50 text-slate-600 border border-slate-100 rounded-lg">
+                <AlertTriangle className="w-3.5 h-3.5" />
+                Pendente: {filteredLevantamentos.filter(l => l.status === "Pendente").length}
+              </span>
+              <span className="text-slate-300 font-light px-1">|</span>
+              <span className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1 bg-blue-50/80 text-blue-700 border border-blue-100 rounded-lg">
+                Hunter Douglas: {filteredLevantamentos.filter(l => l.origemLeads === "Hunter Douglas").length}
+              </span>
+              <span className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1 bg-purple-50/80 text-purple-700 border border-purple-100 rounded-lg">
+                Personaliza Projetos: {filteredLevantamentos.filter(l => l.origemLeads === "Personaliza Projetos" || l.origemLeads === "Projeto Certo" || !l.origemLeads).length}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* FILTER CONTROLS BAR */}
+      <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm space-y-4">
+        <div className="flex items-center justify-between border-b border-slate-50 pb-2.5">
+          <h3 className="text-xs font-black uppercase text-slate-800 tracking-wider flex items-center gap-2">
+            <SlidersHorizontal className="w-4 h-4 text-slate-400" />
+            Filtros Ativos
+          </h3>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setStickyColumns(!stickyColumns)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all ${
+                stickyColumns ? "bg-brand-primary text-white" : "bg-slate-100 text-brand-text-secondary hover:bg-slate-200"
+              }`}
+            >
+              <span className="w-2 h-2 rounded-full bg-current"></span>
+              {stickyColumns ? "Colunas Fixas" : "Fixar Colunas"}
+            </button>
+            {(filterCliente || filterSolicitante || filterResponsavel || filterStatus) && (
+              <button
+                onClick={clearFilters}
+                className="text-[10px] font-bold text-brand-danger hover:underline inline-flex items-center gap-1 cursor-pointer"
+              >
+                <X className="w-3 h-3" />
+                Limpar Filtros
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3.5">
+          {/* Cliente search */}
+          <div className="relative">
+            <Search className="absolute left-3 top-2.5 w-4 h-4 text-slate-400 pointer-events-none" />
+            <input
+              type="text"
+              id="filter_cliente_input"
+              aria-label="Buscar por obra ou cliente"
+              placeholder="Buscar por obra ou cliente..."
+              value={filterCliente}
+              onChange={(e) => setFilterCliente(e.target.value)}
+              className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 text-xs font-semibold rounded-xl text-brand-text-primary placeholder:text-slate-400 focus:outline-none focus:ring-1 focus:ring-brand-primary"
+            />
+          </div>
+
+          {/* Solicitante select */}
+          <select
+            id="filter_solicitante_select"
+            aria-label="Filtrar por Solicitante"
+            value={filterSolicitante}
+            onChange={(e) => setFilterSolicitante(e.target.value)}
+            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 text-xs font-semibold rounded-xl text-brand-text-primary focus:outline-none focus:ring-1 focus:ring-brand-primary cursor-pointer"
+          >
+            <option value="">Solicitante (Todos)</option>
+            {solicitanteOptions.map((s) => (
+              <option key={s} value={s}>
+                {s}
+              </option>
+            ))}
+          </select>
+
+          {/* Responsavel select */}
+          <select
+            id="filter_responsavel_select"
+            aria-label="Filtrar por Responsável"
+            value={filterResponsavel}
+            onChange={(e) => setFilterResponsavel(e.target.value)}
+            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 text-xs font-semibold rounded-xl text-brand-text-primary focus:outline-none focus:ring-1 focus:ring-brand-primary cursor-pointer"
+          >
+            <option value="">Responsável (Todos)</option>
+            <option value="Andrew">Andrew</option>
+            <option value="Mayra">Mayra</option>
+          </select>
+
+          {/* Status select */}
+          <select
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value)}
+            className="w-full px-3 py-2 bg-slate-50 border border-slate-200 text-xs font-semibold rounded-xl text-brand-text-primary focus:outline-none focus:ring-1 focus:ring-brand-primary"
+          >
+            <option value="">Status (Todos)</option>
+            <option value="Concluído">Concluído</option>
+            <option value="Em Desenvolvimento">Em Desenvolvimento</option>
+            <option value="Pendente">Pendente</option>
+          </select>
+        </div>
+      </div>
+
+      {/* NAVEGAÇÃO DE ABAS POR MÊS/ANO */}
+      {!showLixeira && (
+        <div className="flex items-center gap-2 overflow-x-auto pb-1.5 scrollbar-thin scrollbar-thumb-slate-200">
+          {monthGroups.map((group) => {
+            const count = levantamentos.filter(lev => {
+              if (lev.status === "EXCLUIDO") return false;
+              if (group === "Todos") return true;
+              const brDate = convertDateToBR(lev.dataSolicitacao);
+              return getMonthGroup(brDate) === group;
+            }).length;
+
+            const isActive = selectedMonthGroup === group;
+            return (
+              <button
+                key={group}
+                onClick={() => setSelectedMonthGroup(group)}
+                className={`px-4 py-2 text-xs font-bold rounded-xl transition-all whitespace-nowrap cursor-pointer flex items-center gap-1.5 border ${
+                  isActive
+                    ? "bg-brand-primary text-white border-brand-primary shadow-sm"
+                    : "bg-white text-slate-600 border-slate-100 hover:bg-slate-50 hover:text-slate-950"
+                }`}
+              >
+                <span>{group}</span>
+                <span className={`text-[10px] px-1.5 py-0.25 rounded-md font-mono ${
+                  isActive ? "bg-white/20 text-white" : "bg-slate-100 text-slate-500"
+                }`}>
+                  {count}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
+
+      {/* SPREADSHEET TABLE GRID CONTAINER */}
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+        {isLevLoading ? (
+          <div className="p-12 text-center text-xs text-brand-text-secondary font-mono">
+            Buscando dados no Postgres da AWS RDS...
+          </div>
+        ) : filteredLevantamentos.length === 0 ? (
+          <div className="p-14 text-center space-y-3">
+            <Layers className="w-8 h-8 text-slate-300 mx-auto" />
+            <h4 className="text-xs font-black text-slate-700 uppercase tracking-wider">Nenhum registro encontrado</h4>
+            <p className="text-[11px] text-slate-400 max-w-sm mx-auto">
+              Não há levantamentos cadastrados com os filtros ativos. Clique em "Novo Levantamento" para começar.
+            </p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto animate-show">
+            <table className="w-full text-left border-collapse">
+              <thead className={`${stickyColumns ? "sticky top-0 z-20" : ""}`}>
+                <tr className="bg-slate-50 text-[10px] font-black uppercase text-slate-500 tracking-wider border-b border-slate-100">
+                  <th className="py-3 px-4 w-16">REF</th>
+                  <th className="py-3 px-4">OBRA</th>
+                  <th className="py-3 px-4">CLIENTE</th>
+                  <th className="py-3 px-4">DATA DE SOLICITAÇÃO</th>
+                  <th className="py-3 px-4 text-center w-12">ABC</th>
+                  <th className="py-3 px-4">SOLICITANTE</th>
+                  <th className="py-3 px-4">RESPONSÁVEL</th>
+                  <th className="py-3 px-4 text-center">STATUS</th>
+                  <th className="py-3 px-4">PREVISÃO</th>
+                  <th className="py-3 px-4">MATERIAL</th>
+                  <th className="py-3 px-4 text-right">QTD</th>
+                  <th className="py-3 px-4 text-right">AÇÕES</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 text-xs">
+                {sortedLevantamentos.map((lev) => {
+                  const totalVal = getLevantamentoTotalVal(lev);
+                  const subsHD = lev.subestruturas || [];
+                  const subsPC = lev.subestruturas_pc || [];
+                  
+                  const totalQtdHD = subsHD.reduce((acc, sub) => {
+                    return acc + (sub.qtdHD || sub.qtdM2 || 0);
+                  }, 0);
+                  const totalValorHD = subsHD.reduce((acc, sub) => {
+                    return acc + (sub.qtdHD || sub.qtdM2 || 0) * (sub.valorUnitario || 0);
+                  }, 0);
+                  const totalQtdPC = subsPC.reduce((acc, sub) => acc + (sub.qtdPC || 0), 0);
+                  const totalValorPC = subsPC.reduce((acc, sub) => acc + (sub.qtdPC || 0) * (sub.valorUnitario || 0), 0);
+
+                  const isSelected = selectedIds.has(lev.id);
+
+                  return (
+                    <tr
+                      key={lev.id}
+                      onClick={(e) => {
+                        const target = e.target as HTMLElement;
+                        if (target.closest("button") || target.closest("select") || target.closest("input") || target.closest("a")) {
+                          return;
+                        }
+                        const copy = new Set(selectedIds);
+                        if (copy.has(lev.id)) {
+                          copy.delete(lev.id);
+                        } else {
+                          copy.add(lev.id);
+                        }
+                        setSelectedIds(copy);
+                      }}
+                      className={`transition-colors cursor-pointer ${
+                        isSelected
+                          ? "bg-amber-50/70 hover:bg-amber-100/70"
+                          : "hover:bg-slate-50/50"
+                      }`}
+                    >
+                      <td className="py-3.5 px-4 font-mono font-extrabold text-brand-primary">
+                        {lev.ref}
+                      </td>
+                      <td className="py-3.5 px-4 font-bold text-slate-800">
+                        {lev.obra}
+                      </td>
+                      <td className="py-3.5 px-4 font-semibold text-slate-600">
+                        {lev.cliente || <span className="text-slate-300 italic">-</span>}
+                      </td>
+                      <td className="py-3.5 px-4 text-slate-500 font-medium font-mono">
+                        {convertDateToBR(lev.dataSolicitacao)}
+                      </td>
+                      <td className="py-3.5 px-4 text-center">
+                        <span className={`inline-block px-1.5 py-0.5 rounded text-[10px] font-extrabold ${
+                          lev.abc === "A" ? "bg-red-50 text-red-600 border border-red-100" :
+                          lev.abc === "B" ? "bg-amber-50 text-amber-600 border border-amber-100" :
+                          "bg-green-50 text-green-600 border border-green-100"
+                        }`}>
+                          {lev.abc || "C"}
+                        </span>
+                      </td>
+                      <td className="py-3.5 px-4 text-slate-600 font-medium whitespace-nowrap">
+                        {lev.solicitante || <span className="text-slate-300 italic">-</span>}
+                      </td>
+                      <td className="py-3.5 px-4 text-slate-700 font-bold whitespace-nowrap">
+                        {lev.responsavel}
+                      </td>
+                      <td className="py-3.5 px-4 text-center whitespace-normal min-w-[110px]">
+                        <span className={`inline-block text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded-lg text-center break-words leading-tight ${
+                          lev.status === "Concluído" ? "bg-brand-success/10 text-brand-success border border-brand-success/20" :
+                          lev.status === "Em Desenvolvimento" ? "bg-amber-50 text-amber-600 border border-amber-200" :
+                          "bg-slate-100 text-slate-600 border border-slate-200"
+                        }`}>
+                          {lev.status}
+                        </span>
+                      </td>
+                      <td className="py-3.5 px-4 text-slate-500 font-medium font-mono whitespace-nowrap">
+                        {lev.previsao ? convertDateToBR(lev.previsao) : <span className="text-slate-300 italic">-</span>}
+                      </td>
+
+                      <td className="py-3.5 px-4 text-slate-600 max-w-[200px] cursor-pointer"
+                        onMouseEnter={(e) => handleMouseEnter(e, (
+                          <div className="space-y-2">
+                            <div className="font-extrabold uppercase tracking-wider mb-2 border-b border-slate-100 pb-2 flex justify-between items-center">
+                              <span>Materiais inclusos</span>
+                              <span className="font-mono text-[10px] text-slate-500">{subsHD.length} itens</span>
+                            </div>
+                            <div className="space-y-2 max-h-60 overflow-y-auto">
+                              {subsHD.map((sub, sIdx) => {
+                                const q = sub.qtdHD !== undefined ? sub.qtdHD : (sub.qtdM2 || 0);
+                                return (
+                                  <div key={sIdx} className="flex justify-between items-start gap-2 border-b border-slate-50 pb-1 last:border-0 last:pb-0">
+                                    <div className="flex flex-col">
+                                      <span className="font-semibold text-slate-700 break-words">{sub.material || ""}</span>
+                                    </div>
+                                    <span className="font-mono font-bold text-slate-900 shrink-0">
+                                      {Number(q).toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} m²
+                                    </span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        ))}
+                        onMouseLeave={handleMouseLeave}
+                      >
+                        <div className="font-extrabold text-slate-800 text-xs flex flex-wrap gap-1 items-center">
+                          {subsHD.length > 0 ? (
+                            <>
+                              <span className="truncate text-brand-primary">{subsHD.length} Mat.</span>
+                              <div className="text-[9px] text-slate-400 font-mono">
+                                R$ {totalValorHD.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                              </div>
+                            </>
+                          ) : (
+                            <span className="text-slate-300 italic">Nenhum</span>
+                          )}
+                        </div>
+                      </td>
+
+                      <td className="py-3.5 px-4 text-slate-600 font-mono font-bold text-right cursor-pointer">
+                        {subsHD.length > 0 ? (
+                          <span className="text-brand-primary">{totalQtdHD.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} m²</span>
+                        ) : (
+                          <span className="text-slate-300 font-normal">-</span>
+                        )}
+                      </td>
+
+                      {/* VALOR TOTAL COLUMN WITH HOVER VALUES BREAKDOWN */}
+                      <td className="py-3.5 px-4 text-right whitespace-nowrap">
+                        <div className="flex items-center justify-end gap-1">
+                          {showLixeira ? (
+                            <>
+                              <button
+                                onClick={() => restoreSurveyMutation.mutate(lev.id)}
+                                className="p-1 px-2.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-xl border border-emerald-200 text-[10px] font-bold inline-flex items-center gap-1 cursor-pointer transition-all"
+                                title="Restaurar Levantamento"
+                              >
+                                <RotateCcw className="w-3.5 h-3.5 text-emerald-600" />
+                                <span>Restaurar</span>
+                              </button>
+                              <button
+                                onClick={() => setPermanentDeleteConfirmationId(lev.id)}
+                                className="p-1 px-2.5 bg-red-50 hover:bg-red-100 text-red-700 rounded-xl border border-red-100 text-[10px] font-bold inline-flex items-center gap-1 cursor-pointer transition-all"
+                                title="Excluir Permanentemente"
+                              >
+                                <Trash2 className="w-3.5 h-3.5 text-red-500" />
+                                <span>Excluir Permanente</span>
+                              </button>
+                            </>
+                          ) : (
+                            <>
+                              {lev.contratoAFecharId ? (
+                                <button
+                                  onClick={() => {
+                                    if (lev.contratoAFecharId) navigateToProject(lev.contratoAFecharId);
+                                  }}
+                                  className="p-1 px-1.5 bg-brand-primary/5 hover:bg-brand-primary/10 text-brand-primary border border-brand-primary/10 rounded-xl font-bold cursor-pointer transition-colors"
+                                  title="Ver Orçamento Gerado"
+                                >
+                                  <ArrowRight className="w-3.5 h-3.5" />
+                                </button>
+                              ) : (
+                                canEdit && (
+                                  <button
+                                    onClick={() => convertToContractMutation.mutate(lev.id)}
+                                    className="p-1 px-2.5 bg-brand-primary/10 hover:bg-brand-primary text-brand-primary hover:text-white rounded-xl border border-brand-primary/20 text-[10px] font-bold inline-flex items-center gap-1 cursor-pointer transition-all"
+                                    title="Enviar para Orçamentos a Fechar"
+                                  >
+                                    <Send className="w-3 h-3" />
+                                    <span>Enviar p/ Orçar</span>
+                                  </button>
+                                )
+                              )}
+                              {canEdit && (
+                                <>
+                                  <button
+                                    onClick={() => handleOpenEditSurveyModal(lev)}
+                                    className="p-1 px-1.5 bg-slate-50 hover:bg-slate-100 rounded-xl border border-slate-200 text-slate-600 cursor-pointer transition-all"
+                                    title="Editar"
+                                  >
+                                    <Edit className="w-3.5 h-3.5" />
+                                  </button>
+                                  <button
+                                    onClick={() => setDeleteConfirmationId(lev.id)}
+                                    className="p-1 px-1.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl border border-red-100 cursor-pointer transition-all"
+                                    title="Apagar"
+                                  >
+                                    <Trash2 className="w-3.5 h-3.5" />
+                                  </button>
+                                </>
+                              )}
+                            </>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* MODAL: SURVEY CREATION OR UPDATE FORM */}
+      <AnimatePresence>
+        {isSurveyModalOpen && (
+          <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white rounded-2xl w-full max-w-xl shadow-xl border border-slate-100 overflow-hidden"
+            >
+              <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                <h3 className="text-sm font-black uppercase text-slate-800 tracking-wider">
+                  {editingSurvey ? `Editar Levantamento ${editingSurvey.ref}` : "Criar Novo Levantamento"}
+                </h3>
+                <button
+                  onClick={() => setIsSurveyModalOpen(false)}
+                  className="p-1 bg-white hover:bg-slate-100 rounded-xl text-slate-400 border border-slate-200 transition-colors cursor-pointer"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <form onSubmit={handleSubmitSurveyForm} className="p-6 space-y-4 max-h-[85vh] overflow-y-auto">
+                <div className="grid grid-cols-2 gap-4">
+                  {/* Obra (Required) */}
+                  <div className="col-span-2">
+                    <label className="block text-[10px] font-black uppercase text-slate-500 tracking-wider pb-1">Nome do Projeto/Obra *</label>
+                    <input
+                      type="text"
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-brand-primary"
+                      value={formObra}
+                      onChange={(e) => setFormObra(e.target.value)}
+                      placeholder="Ex: Sport Club Itaquera"
+                      required
+                    />
+                  </div>
+
+                  {/* Cliente (Optional) */}
+                  <div className="col-span-2">
+                    <label className="block text-[10px] font-black uppercase text-slate-500 tracking-wider pb-1">Cliente</label>
+                    <input
+                      type="text"
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-brand-primary"
+                      value={formCliente}
+                      onChange={(e) => setFormCliente(e.target.value)}
+                      placeholder="Ex: Controlar Eng (Opcional)"
+                    />
+                  </div>
+
+                  {/* Data Solicitacao (Mask) */}
+                  <div>
+                    <label className="block text-[10px] font-black uppercase text-slate-500 tracking-wider pb-1">Data de Solicitação</label>
+                    <input
+                      type="text"
+                      maxLength={10}
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-brand-primary font-mono"
+                      value={formDataSolicitacao}
+                      onChange={(e) => handleDateInputChange(e, setFormDataSolicitacao)}
+                      placeholder="DD/MM/AAAA"
+                    />
+                  </div>
+
+                  {/* Previsao Data (Mask) */}
+                  <div>
+                    <label className="block text-[10px] font-black uppercase text-slate-500 tracking-wider pb-1">Previsão de Envio</label>
+                    <input
+                      type="text"
+                      maxLength={10}
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-brand-primary font-mono"
+                      value={formPrevisao}
+                      onChange={(e) => handleDateInputChange(e, setFormPrevisao)}
+                      placeholder="DD/MM/AAAA"
+                    />
+                  </div>
+
+                  {/* Dynamic Material HD Editor */}
+                  <div className="col-span-2 border-t border-slate-100 pt-3">
+                    <div className="flex justify-between items-center pb-2 flex-wrap gap-1">
+                      <div>
+                        <label className="block text-[10px] font-black uppercase text-slate-700 tracking-wider">Material</label>
+                        <span className="text-[9px] text-slate-400 block">Preencha o material digitando ou use o catálogo opcional</span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setFormSubestruturas([...formSubestruturas, { material: "", qtdHD: "", valorUnitario: "", unidade: "Metro Quadrado" }])}
+                        className="px-2 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-[9px] font-extrabold uppercase rounded-lg border border-emerald-200 inline-flex items-center gap-1 transition-colors cursor-pointer"
+                      >
+                        <Plus className="w-3 h-3 text-emerald-600" /> Adicionar Material
+                      </button>
+                    </div>
+
+                    <div className="space-y-3 pr-0.5">
+                      {formSubestruturas.map((item, idx) => (
+                        <div key={idx} className="bg-blue-50/50 p-3 border border-blue-200 rounded-xl space-y-2 relative">
+                          <div className="col-span-12">
+                            <label className="block text-[8px] font-bold text-slate-400 uppercase pb-0.5">Descrição do Material (PREENCHER)</label>
+                            <input
+                              type="text"
+                              className="w-full px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-[11px] font-semibold focus:ring-1 focus:ring-brand-primary"
+                              value={item.material}
+                              placeholder="Digite a descrição..."
+                              onChange={(e) => {
+                                const copy = [...formSubestruturas];
+                                copy[idx].material = e.target.value;
+                                setFormSubestruturas(copy);
+                              }}
+                            />
+                          </div>
+
+                          <div className="flex gap-2 items-center">
+                            <div className="flex-1">
+                              <label className="block text-[8px] font-bold text-slate-400 uppercase pb-0.5">Qtd (m²)</label>
+                              <input
+                                type="text"
+                                className="w-full px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-[11px] font-bold text-right font-mono"
+                                value={item.qtdHD}
+                                placeholder="0,00"
+                                onChange={(e) => {
+                                  const copy = [...formSubestruturas];
+                                  copy[idx].qtdHD = e.target.value;
+                                  setFormSubestruturas(copy);
+                                }}
+                              />
+                            </div>
+
+                            <div className="flex-1 hidden">
+                              <label className="block text-[8px] font-bold text-slate-400 uppercase pb-0.5">Valor Unit. (R$)</label>
+                              <input
+                                type="text"
+                                className="w-full px-2 py-1.5 bg-white border border-slate-200 rounded-lg text-[11px] font-bold text-right font-mono"
+                                value={item.valorUnitario}
+                                placeholder="0,00"
+                                onChange={(e) => {
+                                  const copy = [...formSubestruturas];
+                                  copy[idx].valorUnitario = e.target.value;
+                                  setFormSubestruturas(copy);
+                                }}
+                              />
+                            </div>
+
+                            {formSubestruturas.length > 1 && (
+                              <button
+                                type="button"
+                                onClick={() => setFormSubestruturas(formSubestruturas.filter((_, i) => i !== idx))}
+                                className="p-1.5 bg-white hover:bg-red-50 text-red-500 rounded-lg border border-slate-200 text-xs font-bold transition-colors cursor-pointer self-end mb-0.5"
+                              >
+                                <X className="w-4 h-4" />
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+
+
+                  {/* ABC code */}
+                  <div>
+                    <label className="block text-[10px] font-black uppercase text-slate-500 tracking-wider pb-1">Curva ABC</label>
+                    <select
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-brand-primary"
+                      value={formAbc}
+                      onChange={(e) => setFormAbc(e.target.value)}
+                    >
+                      <option value="">Selecione...</option>
+                      <option value="A">A</option>
+                      <option value="B">B</option>
+                      <option value="C">C</option>
+                    </select>
+                  </div>
+
+                  {/* Solicitante */}
+                  <div>
+                    <label className="block text-[10px] font-black uppercase text-slate-500 tracking-wider pb-1">Solicitante</label>
+                    <select
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-brand-primary"
+                      value={formSolicitante}
+                      onChange={(e) => setFormSolicitante(e.target.value)}
+                    >
+                      <option value="">Selecione o solicitante...</option>
+                      {allDatabaseSolicitantes.map(sol => (
+                        <option key={sol} value={sol}>{sol}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Responsavel */}
+                  <div>
+                    <label className="block text-[10px] font-black uppercase text-slate-500 tracking-wider pb-1">Responsável *</label>
+                    <select
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-brand-primary"
+                      value={formResponsavel}
+                      onChange={(e) => setFormResponsavel(e.target.value as any)}
+                      required
+                    >
+                      <option value="Mayra">Mayra</option>
+                      <option value="Andrew">Andrew</option>
+                    </select>
+                  </div>
+
+                  {/* Status */}
+                  <div>
+                    <label className="block text-[10px] font-black uppercase text-slate-500 tracking-wider pb-1">Status *</label>
+                    <select
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-brand-primary"
+                      value={formStatus}
+                      onChange={(e) => setFormStatus(e.target.value as any)}
+                      required
+                    >
+                      <option value="Pendente">Pendente</option>
+                      <option value="Em Desenvolvimento">Em Desenvolvimento</option>
+                      <option value="Concluído">Concluído</option>
+                    </select>
+                  </div>
+
+                  {/* Origem dos Leads */}
+                  <div className="col-span-2">
+                    <label className="block text-[10px] font-black uppercase text-slate-500 tracking-wider pb-1">Origem dos Leads *</label>
+                    <select
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs font-semibold focus:outline-none focus:ring-1 focus:ring-brand-primary"
+                      value={formOrigemLeads}
+                      onChange={(e) => setFormOrigemLeads(e.target.value as any)}
+                      required
+                    >
+                      <option value="Hunter Douglas">Hunter Douglas</option>
+                      <option value="Personaliza Projetos">Personaliza Projetos</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div className="pt-4 border-t border-slate-50 flex justify-end gap-2.5">
+                  <button
+                    type="button"
+                    onClick={() => setIsSurveyModalOpen(false)}
+                    className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl cursor-pointer"
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={saveSurveyMutation.isPending}
+                    className="px-5 py-2 bg-brand-primary hover:bg-brand-secondary text-white text-xs font-bold rounded-xl cursor-pointer shadow-sm disabled:opacity-50"
+                  >
+                    {saveSurveyMutation.isPending ? "Salvando..." : "Gravar Dados"}
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* MODAL: SUCCESS ORÇAMENTO NOTIFIER */}
+      <AnimatePresence>
+        {conversionSuccess && conversionSuccess.open && (
+          <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              className="w-full max-w-md bg-white rounded-2xl shadow-2xl border border-slate-100 overflow-hidden text-center relative p-8 space-y-6"
+            >
+              <div className="w-16 h-16 bg-green-50 rounded-full flex items-center justify-center mx-auto border border-green-100">
+                <CheckCircle className="w-8 h-8 text-green-600 animate-bounce" />
+              </div>
+
+              <div className="space-y-2">
+                <h3 className="text-xl font-black text-brand-primary tracking-tight">
+                  Levantamento Convertido!
+                </h3>
+                <p className="text-xs text-brand-text-secondary leading-relaxed">
+                  O levantamento <strong className="text-slate-800 font-bold">{conversionSuccess.ref}</strong> foi integrado com êxito à carteira de orçamentos da empresa.
+                </p>
+              </div>
+
+              <div className="bg-slate-50 border border-slate-100 p-4 rounded-xl text-left text-xs space-y-2 leading-relaxed">
+                <div>
+                  <strong className="text-slate-400 uppercase text-[9px] font-mono tracking-wider">Origem:</strong>
+                  <div className="font-bold text-slate-700">{conversionSuccess.ref} - {conversionSuccess.obra}</div>
+                </div>
+                <div className="border-t border-slate-100/60 pt-2">
+                  <strong className="text-slate-400 uppercase text-[9px] font-mono tracking-wider">Novo Registro Criado:</strong>
+                  <div className="text-brand-success font-black">Orçamento a Fechar</div>
+                </div>
+              </div>
+
+              <div className="flex flex-col gap-2 pt-2">
+                <button
+                  onClick={() => {
+                    const cid = conversionSuccess.contractId;
+                    setConversionSuccess(null);
+                    navigateToProject(cid);
+                  }}
+                  className="w-full py-3 bg-brand-primary text-white text-xs font-extrabold rounded-xl shadow hover:bg-brand-secondary transition-all cursor-pointer flex items-center justify-center gap-2"
+                >
+                  <ArrowRight className="w-4 h-4 text-brand-accent shrink-0 animate-pulse" />
+                  <span>Ir para Orçamento a Fechar</span>
+                </button>
+                <button
+                  onClick={() => setConversionSuccess(null)}
+                  className="w-full py-3 bg-slate-50 text-slate-500 border border-slate-100 text-xs font-bold rounded-xl hover:bg-slate-100 transition-all cursor-pointer"
+                >
+                  Continuar em Levantamentos
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* MODAL: DELETE CONFIRMATION */}
+      <AnimatePresence>
+        {deleteConfirmationId && (
+          <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white rounded-2xl w-full max-w-sm shadow-xl border border-slate-100 overflow-hidden p-6 space-y-4"
+            >
+              <h3 className="text-sm font-black uppercase text-slate-800 tracking-wider">
+                Excluir Levantamento
+              </h3>
+              <p className="text-xs text-slate-600 leading-relaxed font-semibold">
+                Tem certeza que deseja excluir este levantamento?
+              </p>
+              <div className="flex justify-end gap-2.5 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setDeleteConfirmationId(null)}
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl cursor-pointer"
+                  onClick={() => {
+                    deleteSurveyMutation.mutate(deleteConfirmationId);
+                    setDeleteConfirmationId(null);
+                  }}
+                >
+                  Excluir
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* MODAL: PERMANENT DELETE CONFIRMATION */}
+      <AnimatePresence>
+        {permanentDeleteConfirmationId && (
+          <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white rounded-2xl w-full max-w-sm shadow-xl border border-red-100 overflow-hidden p-6 space-y-4"
+            >
+              <h3 className="text-sm font-black uppercase text-red-700 tracking-wider">
+                Excluir Permanentemente
+              </h3>
+              <p className="text-xs text-slate-600 leading-relaxed font-semibold">
+                Tem certeza que deseja excluir permanentemente este levantamento? Esta ação não pode ser desfeita.
+              </p>
+              <div className="flex justify-end gap-2.5 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setPermanentDeleteConfirmationId(null)}
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl cursor-pointer"
+                  onClick={() => {
+                    permanentDeleteSurveyMutation.mutate(permanentDeleteConfirmationId);
+                    setPermanentDeleteConfirmationId(null);
+                  }}
+                >
+                  Excluir Permanentemente
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+      {/* MODAL: ALERT MISSING PC MATERIAL */}
+      <AnimatePresence>
+        {alertPopupOpen && (
+          <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="bg-white rounded-2xl w-full max-w-sm shadow-xl border border-slate-100 overflow-hidden p-6 space-y-4 text-center"
+            >
+              <div className="w-12 h-12 bg-amber-50 rounded-full flex items-center justify-center mx-auto border border-amber-100">
+                <AlertTriangle className="w-6 h-6 text-amber-600" />
+              </div>
+              <h3 className="text-sm font-black uppercase text-slate-800 tracking-wider">
+                Atenção: Material Faltante
+              </h3>
+              <p className="text-xs text-slate-600 leading-relaxed font-semibold">
+                É obrigatório inserir pelo menos um material para a subestrutura em <strong>Material PC</strong> antes de salvar.
+              </p>
+              <div className="flex justify-center pt-2">
+                <button
+                  type="button"
+                  onClick={() => setAlertPopupOpen(false)}
+                  className="px-6 py-2 bg-slate-800 hover:bg-slate-900 text-white text-xs font-bold rounded-xl cursor-pointer"
+                >
+                  Entendido
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+      {tooltip.visible && createPortal(
+        <div
+          className="absolute z-[60] bg-white text-slate-800 text-xs rounded-xl p-4 shadow-xl border border-slate-200 w-96 animate-in fade-in zoom-in-95 duration-100 pointer-events-none"
+          style={{ 
+            top: tooltip.y, 
+            left: tooltip.x,
+            transform: tooltip.placement === 'top' ? 'translateY(-100%)' : 'none'
+          }}
+        >
+          {tooltip.content}
+        </div>,
+        document.body
+      )}
+
+    </div>
+  );
+}
