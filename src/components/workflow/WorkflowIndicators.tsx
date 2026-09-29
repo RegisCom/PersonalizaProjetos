@@ -18,12 +18,14 @@ import {
   Cell 
 } from "recharts";
 import { Obra } from "../../types";
+import { useUIStore } from "../../store";
 
 interface WorkflowIndicatorsProps {
   contracts: Obra[];
 }
 
 export default function WorkflowIndicators({ contracts }: WorkflowIndicatorsProps) {
+  const setFluxoSubView = useUIStore((state) => state.setFluxoSubView);
   // Calculations
   const total = contracts.length;
   const inProgress = contracts.filter(c => c.workflowStatus === "Em Andamento").length;
@@ -37,14 +39,14 @@ export default function WorkflowIndicators({ contracts }: WorkflowIndicatorsProp
 
   // Chart data per stage
   const stages = [
-    { name: "Solicitação", color: "#6366F1" },
-    { name: "Arquitetura", color: "#8B5CF6" },
-    { name: "Orçamento", color: "#EC4899" },
-    { name: "Proposta", color: "#F43F5E" },
+    { name: "Solicitação", color: "#B8860B" },
+    { name: "Arquitetura", color: "#D4AF37" },
+    { name: "Orçamento", color: "#8C6207" },
+    { name: "Proposta", color: "#CA8A04" },
     { name: "Projeto Executivo", color: "#3B82F6" },
-    { name: "Produção", color: "#06B6D4" },
-    { name: "Execução", color: "#F59E0B" },
-    { name: "Financeiro", color: "#10B981" },
+    { name: "Produção", color: "#0D9488" },
+    { name: "Execução", color: "#EAB308" },
+    { name: "Financeiro", color: "#16A34A" },
     { name: "Encerrado", color: "#64748B" }
   ];
 
@@ -64,7 +66,7 @@ export default function WorkflowIndicators({ contracts }: WorkflowIndicatorsProp
       <div className="lg:col-span-2 grid grid-cols-2 md:grid-cols-3 gap-3">
         {/* Total Contratos */}
         <div className="bg-white border border-slate-100 rounded-xl p-4 shadow-xs flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-indigo-50 flex items-center justify-center text-indigo-600 shrink-0">
+          <div className="w-10 h-10 rounded-lg bg-amber-500/10 flex items-center justify-center text-[#B8860B] shrink-0">
             <Briefcase className="w-5 h-5" />
           </div>
           <div>
@@ -153,7 +155,15 @@ export default function WorkflowIndicators({ contracts }: WorkflowIndicatorsProp
         </div>
         <div className="h-28 w-full mt-2">
           <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={chartData} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
+            <BarChart 
+              data={chartData} 
+              margin={{ top: 5, right: 5, left: -25, bottom: 0 }}
+              onClick={() => {
+                setFluxoSubView("painel");
+              }}
+              className="cursor-pointer"
+              style={{ cursor: "pointer" }}
+            >
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
               <XAxis 
                 dataKey="name" 
@@ -176,7 +186,15 @@ export default function WorkflowIndicators({ contracts }: WorkflowIndicatorsProp
                   return label;
                 }}
               />
-              <Bar dataKey="Contratos" radius={[4, 4, 0, 0]}>
+              <Bar 
+                dataKey="Contratos" 
+                radius={[4, 4, 0, 0]}
+                onClick={() => {
+                  setFluxoSubView("painel");
+                }}
+                className="cursor-pointer"
+                style={{ cursor: "pointer" }}
+              >
                 {chartData.map((entry, index) => (
                   <Cell key={`cell-${index}`} fill={entry.color} />
                 ))}

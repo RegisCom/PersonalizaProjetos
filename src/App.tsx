@@ -1317,7 +1317,7 @@ function AppContent() {
 
         {/* Global technical copyright footer */}
         <footer className="py-4 px-8 border-t border-slate-100 bg-white text-center text-[10px] font-semibold text-brand-text-secondary flex flex-col sm:flex-row items-center justify-between gap-2.5">
-          <span>© 2026 Personaliza Projetos Custos. Todos os direitos reservados.</span>
+          <span>© 2026 Personaliza Projetos. Todos os direitos reservados.</span>
         </footer>
       </main>
 

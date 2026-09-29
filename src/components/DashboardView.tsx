@@ -143,7 +143,8 @@ export default function DashboardView() {
     }));
 
   const handleBarClick = (entry: any) => {
-    const id = entry?.id || entry?.payload?.id;
+    // Works both directly on bar elements and on the BarChart parent onClick
+    const id = entry?.id || entry?.payload?.id || entry?.activePayload?.[0]?.payload?.id;
     if (id) {
       navigateToProject(id);
     }
@@ -160,7 +161,7 @@ export default function DashboardView() {
           </p>
           <div className="flex justify-between gap-3 items-center">
             <span className="text-slate-500 font-semibold text-[10px] uppercase tracking-wider">Valor Contrato</span>
-            <span className="font-mono font-bold text-amber-600">{formatBRL(currentData.Contrato)}</span>
+            <span className="font-mono font-bold text-[#B8860B]">{formatBRL(currentData.Contrato)}</span>
           </div>
           <div className="flex justify-between gap-3 items-center">
             <span className="text-slate-500 font-semibold text-[10px] uppercase tracking-wider">Custo Geral</span>
@@ -184,7 +185,7 @@ export default function DashboardView() {
     return null;
   };
 
-  const COLORS = ["#EA580C", "#1E293B", "#D97706", "#334155", "#9A3412", "#475569", "#7C2D12", "#1E1B4B"];
+  const COLORS = ["#B8860B", "#D4AF37", "#8C6207", "#16A34A", "#F59E0B", "#DC2626", "#475569", "#334155"];
   const pieData = data.chartCosts.filter((item) => item.value > 0);
 
   const translateGroup = (grp: string) => {
@@ -242,7 +243,7 @@ export default function DashboardView() {
                 title="PROJEÇÃO 2026"
                 current={data.kpiProjecao.atual}
                 goal={6000000}
-                color="emerald"
+                color="gold"
                 hideBar={false}
               />
             </div>
@@ -285,7 +286,7 @@ export default function DashboardView() {
                 title="Receita Contratual"
                 value={data.totalContratos}
                 type="currency"
-                icon={<Briefcase className="w-4.5 h-4.5 text-amber-600" />}
+                icon={<Briefcase className="w-4.5 h-4.5 text-[#B8860B]" />}
                 subtitle="Faturamento total"
                 id="hdr_receita_contratual_total"
               />
@@ -295,7 +296,7 @@ export default function DashboardView() {
                 title="Custo dos Contratos"
                 value={data.totalVisaoGeral}
                 type="currency"
-                icon={<TrendingUp className="w-4.5 h-4.5 text-brand-accent" />}
+                icon={<TrendingUp className="w-4.5 h-4.5 text-[#D4AF37]" />}
                 subtitle="Projetos em progresso"
                 id="hdr_custo_ativo_total"
               />
@@ -343,14 +344,20 @@ export default function DashboardView() {
               </div>
               <div className="w-full h-52 mt-4">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={barChartData} margin={{ top: 5, right: 5, left: -25, bottom: 5 }}>
+                  <BarChart 
+                    data={barChartData} 
+                    margin={{ top: 5, right: 5, left: -25, bottom: 5 }}
+                    onClick={handleBarClick}
+                    className="cursor-pointer"
+                    style={{ cursor: "pointer" }}
+                  >
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#F1F5F9" />
                     <XAxis dataKey="name" tick={{ fontSize: 9, fill: "#64748B" }} axisLine={false} tickLine={false} />
                     <YAxis tickFormatter={(v: number) => `${v / 1000}k`} tick={{ fontSize: 9, fill: "#64748B" }} axisLine={false} tickLine={false} />
                     <Tooltip content={<CustomTooltip />} />
                     <Legend iconSize={6} iconType="circle" wrapperStyle={{ fontSize: 9, paddingTop: 10 }} />
-                    <Bar dataKey="Contrato" name="Valor Contrato" fill="#F97316" radius={[3, 3, 0, 0]} barSize={12} onClick={handleBarClick} className="cursor-pointer hover:opacity-85 transition-opacity" style={{ cursor: "pointer" }} />
-                    <Bar dataKey="Custos" name="Custo Geral" fill="#1A1A1A" radius={[3, 3, 0, 0]} barSize={12} onClick={handleBarClick} className="cursor-pointer hover:opacity-85 transition-opacity" style={{ cursor: "pointer" }} />
+                    <Bar dataKey="Contrato" name="Valor Contrato" fill="#B8860B" radius={[3, 3, 0, 0]} barSize={12} onClick={handleBarClick} className="cursor-pointer hover:opacity-85 transition-opacity" style={{ cursor: "pointer" }} />
+                    <Bar dataKey="Custos" name="Custo Geral" fill="#1C1917" radius={[3, 3, 0, 0]} barSize={12} onClick={handleBarClick} className="cursor-pointer hover:opacity-85 transition-opacity" style={{ cursor: "pointer" }} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>

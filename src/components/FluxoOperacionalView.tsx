@@ -564,10 +564,10 @@ export default function FluxoOperacionalView() {
                     <RechartsPieChart>
                       <Pie
                         data={[
-                          { name: "Em Andamento", value: contracts.filter(c => c.workflowStatus === "Em Andamento").length, color: "#3B82F6" },
-                          { name: "Atrasado", value: contracts.filter(c => c.workflowStatus === "Atrasado").length, color: "#EF4444" },
-                          { name: "Aguardando", value: contracts.filter(c => c.workflowStatus === "Aguardando").length, color: "#F59E0B" },
-                          { name: "Finalizado", value: contracts.filter(c => c.workflowStatus === "Finalizado").length, color: "#10B981" }
+                          { name: "Em Andamento", value: contracts.filter(c => c.workflowStatus === "Em Andamento").length, color: "#B8860B" },
+                          { name: "Atrasado", value: contracts.filter(c => c.workflowStatus === "Atrasado").length, color: "#DC2626" },
+                          { name: "Aguardando", value: contracts.filter(c => c.workflowStatus === "Aguardando").length, color: "#D4AF37" },
+                          { name: "Finalizado", value: contracts.filter(c => c.workflowStatus === "Finalizado").length, color: "#16A34A" }
                         ].filter(item => item.value > 0)}
                         cx="50%"
                         cy="50%"
@@ -577,10 +577,10 @@ export default function FluxoOperacionalView() {
                         dataKey="value"
                       >
                         {[
-                          { name: "Em Andamento", color: "#3B82F6" },
-                          { name: "Atrasado", color: "#EF4444" },
-                          { name: "Aguardando", color: "#F59E0B" },
-                          { name: "Finalizado", color: "#10B981" }
+                          { name: "Em Andamento", color: "#B8860B" },
+                          { name: "Atrasado", color: "#DC2626" },
+                          { name: "Aguardando", color: "#D4AF37" },
+                          { name: "Finalizado", color: "#16A34A" }
                         ].map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={entry.color} />
                         ))}
@@ -593,10 +593,10 @@ export default function FluxoOperacionalView() {
                 {/* Custom Legends */}
                 <div className="w-full md:w-1/2 space-y-3 pl-4 md:border-l border-slate-100">
                   {[
-                    { label: "Em Andamento", count: contracts.filter(c => c.workflowStatus === "Em Andamento").length, color: "bg-blue-500", desc: "Contratos ativos em execução padrão." },
-                    { label: "Atrasados", count: contracts.filter(c => c.workflowStatus === "Atrasado").length, color: "bg-rose-500 animate-pulse", desc: "Contratos com prazo SLA expirado." },
-                    { label: "Aguardando Terceiros", count: contracts.filter(c => c.workflowStatus === "Aguardando").length, color: "bg-amber-500", desc: "Bloqueados aguardando cliente/fornecedor." },
-                    { label: "Concluídos", count: contracts.filter(c => c.workflowStatus === "Finalizado").length, color: "bg-emerald-500", desc: "Contratos finalizados com sucesso." }
+                    { label: "Em Andamento", count: contracts.filter(c => c.workflowStatus === "Em Andamento").length, color: "bg-[#B8860B]", desc: "Contratos ativos em execução padrão." },
+                    { label: "Atrasados", count: contracts.filter(c => c.workflowStatus === "Atrasado").length, color: "bg-red-500 animate-pulse", desc: "Contratos com prazo SLA expirado." },
+                    { label: "Aguardando Terceiros", count: contracts.filter(c => c.workflowStatus === "Aguardando").length, color: "bg-[#D4AF37]", desc: "Bloqueados aguardando cliente/fornecedor." },
+                    { label: "Concluídos", count: contracts.filter(c => c.workflowStatus === "Finalizado").length, color: "bg-green-600", desc: "Contratos finalizados com sucesso." }
                   ].map((leg) => {
                     const total = contracts.length || 1;
                     const pct = Math.round((leg.count / total) * 100);
@@ -643,15 +643,66 @@ export default function FluxoOperacionalView() {
                         };
                       })}
                       margin={{ top: 10, right: 10, left: -25, bottom: 5 }}
+                      onClick={(entry: any) => {
+                        const resp = entry?.activePayload?.[0]?.payload?.Completo || entry?.Completo;
+                        if (resp) {
+                          setFilters(prev => ({ ...prev, responsavel: resp }));
+                          setFluxoSubView("painel");
+                        }
+                      }}
+                      className="cursor-pointer"
+                      style={{ cursor: "pointer" }}
                     >
                       <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
                       <XAxis dataKey="Responsavel" tick={{ fill: "#94a3b8", fontSize: 9, fontWeight: "bold" }} axisLine={false} tickLine={false} />
                       <YAxis allowDecimals={false} tick={{ fill: "#94a3b8", fontSize: 9, fontWeight: "bold" }} axisLine={false} tickLine={false} />
                       <RechartsTooltip contentStyle={{ fontSize: "10px", borderRadius: "8px" }} />
                       <Legend iconSize={8} wrapperStyle={{ fontSize: "10px", fontWeight: "bold" }} />
-                      <Bar dataKey="Ativos" stackId="a" fill="#3b82f6" radius={[0, 0, 0, 0]} />
-                      <Bar dataKey="Atrasados" stackId="a" fill="#ef4444" radius={[0, 0, 0, 0]} />
-                      <Bar dataKey="Concluidos" stackId="a" fill="#10b981" radius={[4, 4, 0, 0]} />
+                      <Bar 
+                        dataKey="Ativos" 
+                        stackId="a" 
+                        fill="#B8860B" 
+                        radius={[0, 0, 0, 0]} 
+                        onClick={(entry: any) => {
+                          const resp = entry?.Completo || entry?.payload?.Completo;
+                          if (resp) {
+                            setFilters(prev => ({ ...prev, responsavel: resp }));
+                            setFluxoSubView("painel");
+                          }
+                        }}
+                        className="cursor-pointer"
+                        style={{ cursor: "pointer" }}
+                      />
+                      <Bar 
+                        dataKey="Atrasados" 
+                        stackId="a" 
+                        fill="#DC2626" 
+                        radius={[0, 0, 0, 0]} 
+                        onClick={(entry: any) => {
+                          const resp = entry?.Completo || entry?.payload?.Completo;
+                          if (resp) {
+                            setFilters(prev => ({ ...prev, responsavel: resp }));
+                            setFluxoSubView("painel");
+                          }
+                        }}
+                        className="cursor-pointer"
+                        style={{ cursor: "pointer" }}
+                      />
+                      <Bar 
+                        dataKey="Concluidos" 
+                        stackId="a" 
+                        fill="#16A34A" 
+                        radius={[4, 4, 0, 0]} 
+                        onClick={(entry: any) => {
+                          const resp = entry?.Completo || entry?.payload?.Completo;
+                          if (resp) {
+                            setFilters(prev => ({ ...prev, responsavel: resp }));
+                            setFluxoSubView("painel");
+                          }
+                        }}
+                        className="cursor-pointer"
+                        style={{ cursor: "pointer" }}
+                      />
                     </RechartsBarChart>
                   </ResponsiveContainer>
                 )}

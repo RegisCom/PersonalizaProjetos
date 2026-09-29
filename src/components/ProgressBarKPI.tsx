@@ -5,7 +5,7 @@ interface ProgressBarKPIProps {
   title: string;
   current: number;
   goal: number;
-  color: "indigo" | "rose" | "emerald";
+  color: "indigo" | "rose" | "emerald" | "gold";
   description?: string;
   hideBar?: boolean;
   onGoalChange?: (newGoal: number) => void;
@@ -73,6 +73,12 @@ export default function ProgressBarKPI({
       bg: "bg-brand-success/5",
       text: "text-brand-success font-extrabold",
       border: "border-brand-success/15",
+    },
+    gold: {
+      bar: "bg-[#B8860B]",
+      bg: "bg-[#B8860B]/10",
+      text: "text-[#B8860B] font-extrabold",
+      border: "border-[#B8860B]/20",
     },
   }[color];
 
