@@ -1,6 +1,7 @@
 import React from "react";
 import { User, Calendar, MessageSquare, AlertCircle, Clock, CheckCircle2, Play } from "lucide-react";
 import { Obra } from "../../types";
+import { formatDateBR } from "../../lib/dateUtils";
 
 interface WorkflowCardProps {
   contract: Obra;
@@ -100,7 +101,9 @@ export default function WorkflowCard({ contract, onClick }: WorkflowCardProps) {
           </div>
           <div className="flex items-center gap-1 truncate justify-end">
             <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-            <span className="text-slate-600">{contract.workflowPrazo || contract.prazo || "S/P"}</span>
+            <span className="text-slate-600">
+              {formatDateBR(contract.workflowPrazo || contract.prazo) || "S/P"}
+            </span>
           </div>
         </div>
 

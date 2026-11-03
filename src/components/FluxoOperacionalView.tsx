@@ -38,6 +38,7 @@ import WorkflowKanban from "./workflow/WorkflowKanban";
 import WorkflowDrawer from "./workflow/WorkflowDrawer";
 import { useUIStore, useAuthStore } from "../store";
 import { Obra } from "../types";
+import { formatDateBR } from "../lib/dateUtils";
 
 export default function FluxoOperacionalView() {
   const fluxoSubView = useUIStore((state) => state.fluxoSubView);
@@ -407,7 +408,7 @@ export default function FluxoOperacionalView() {
                           <td className="p-4">
                             <div className="flex items-center gap-1 text-slate-600 font-semibold text-xs">
                               <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                              <span>{c.workflowPrazo || c.prazo || <span className="text-slate-300 font-normal">Sem prazo</span>}</span>
+                              <span>{formatDateBR(c.workflowPrazo || c.prazo) || <span className="text-slate-300 font-normal">Sem prazo</span>}</span>
                             </div>
                           </td>
                           <td className="p-4 text-right">

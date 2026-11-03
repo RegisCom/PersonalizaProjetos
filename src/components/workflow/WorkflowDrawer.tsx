@@ -21,6 +21,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { Obra, WorkflowMovimentacao, ChecklistItem } from "../../types";
 import WorkflowTimeline from "./WorkflowTimeline";
 import WorkflowHistory from "./WorkflowHistory";
+import { formatDateBR } from "../../lib/dateUtils";
 
 interface WorkflowDrawerProps {
   contractId: string | null;
@@ -393,7 +394,7 @@ export default function WorkflowDrawer({ contractId, isOpen, onClose, onSuccess 
                       </span>
                       <p className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
                         <Calendar className="w-4 h-4 text-slate-400 shrink-0" />
-                        {contract.workflowPrazo || contract.prazo || "Sem prazo"}
+                        {formatDateBR(contract.workflowPrazo || contract.prazo) || "Sem prazo"}
                       </p>
                     </div>
 

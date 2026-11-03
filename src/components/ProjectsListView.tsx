@@ -16,7 +16,9 @@ import {
   RotateCcw,
   Lock,
   Send,
-  Loader2
+  Loader2,
+  Calendar,
+  X
 } from "lucide-react";
 import { useUIStore, useAuthStore } from "../store";
 import { DashboardStats, Projeto } from "../types";
@@ -24,15 +26,7 @@ import CreateProjectModal from "./CreateObraModal";
 import CustomAutoSuggestInput from "./CustomAutoSuggestInput";
 import EnviarEquipeModal from "./EnviarEquipeModal";
 import { logDeletion, logEdit, logFilter, logDownload } from "../lib/logger";
-
-const formatDateBR = (dateStr?: string | null) => {
-  if (!dateStr) return "";
-  const parts = dateStr.split("-");
-  if (parts.length === 3) {
-    return `${parts[2]}/${parts[1]}/${parts[0]}`;
-  }
-  return dateStr;
-};
+import { formatDateBR, normalizeDateToISO } from "../lib/dateUtils";
 
 export default function ProjectsListView() {
   const navigateToProject = useUIStore((state) => state.navigateToProject);
@@ -49,6 +43,10 @@ export default function ProjectsListView() {
   const [restoreConfirmationName, setRestoreConfirmationName] = useState<string>("");
   const [permanentDeleteConfirmationId, setPermanentDeleteConfirmationId] = useState<string | null>(null);
   const [permanentDeleteConfirmationName, setPermanentDeleteConfirmationName] = useState<string>("");
+
+  // Date Filter States (Envio do Orçamento for A_FECHAR; Aprovação do Orçamento for other views)
+  const [dateStartFilter, setDateStartFilter] = useState("");
+  const [dateEndFilter, setDateEndFilter] = useState("");
 
   // Auto-reset trash view on tab change
   useEffect(() => {
@@ -295,7 +293,29 @@ export default function ProjectsListView() {
     const matchesSearch = o.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
           (o.cliente && o.cliente.toLowerCase().includes(searchTerm.toLowerCase()));
 
-    return matchesStatus && matchesSearch;
+    // Date filtering:
+    // In "Orçamentos a Fechar" -> filtered by "Envio do Orçamento" (o.dataInicioContrato)
+    // In "Contratos Entregues", "Contratos Consolidados" -> filtered by "Aprovação do Orçamento" (o.dataFimContrato)
+    const rawTargetDate = projectFilter === "A_FECHAR" ? o.dataInicioContrato : o.dataFimContrato;
+    const normalizedTargetDate = normalizeDateToISO(rawTargetDate);
+
+    let matchesDate = true;
+    if (dateStartFilter) {
+      if (!normalizedTargetDate) {
+        matchesDate = false;
+      } else if (normalizedTargetDate < dateStartFilter) {
+        matchesDate = false;
+      }
+    }
+    if (dateEndFilter) {
+      if (!normalizedTargetDate) {
+        matchesDate = false;
+      } else if (normalizedTargetDate > dateEndFilter) {
+        matchesDate = false;
+      }
+    }
+
+    return matchesStatus && matchesSearch && matchesDate;
   });
 
   // Calculate dynamic metrics specifically for projects of the selected status and date filters
@@ -481,20 +501,59 @@ export default function ProjectsListView() {
                 id="project_search_input"
               />
             </div>
-            <p className="text-[10px] font-bold text-brand-text-secondary bg-slate-50 border border-slate-100 py-1 px-2 rounded-md shrink-0">
-              {filteredProjects.length === 1 
-                ? (projectFilter === "A_FECHAR" ? "1 orçamento localizado" : "1 contrato localizado") 
-                : `${filteredProjects.length} ${projectFilter === "A_FECHAR" ? "orçamentos localizados" : "contratos localizados"}`}
-            </p>
-            <button
-              onClick={() => setStickyColumns(!stickyColumns)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all ${
-                stickyColumns ? "bg-brand-primary text-white" : "bg-slate-100 text-brand-text-secondary hover:bg-slate-200"
-              }`}
-            >
-              <span className="w-2 h-2 rounded-full bg-current"></span>
-              {stickyColumns ? "Colunas Fixas" : "Fixar Colunas"}
-            </button>
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="flex items-center gap-1.5 bg-slate-50 border border-slate-200/80 rounded-xl px-2.5 py-1 text-xs">
+                <Calendar className="w-3.5 h-3.5 text-[#B8860B] shrink-0" />
+                <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500 whitespace-nowrap">
+                  {projectFilter === "A_FECHAR" ? "Envio do Orçamento:" : "Aprovação do Orçamento:"}
+                </span>
+                <input
+                  type="date"
+                  className="bg-white border border-slate-200 rounded-lg px-2 py-0.5 text-xs font-semibold text-slate-700 focus:outline-hidden focus:ring-1 focus:ring-brand-primary"
+                  value={dateStartFilter}
+                  onChange={(e) => setDateStartFilter(e.target.value)}
+                  title="Data Inicial"
+                  aria-label="Data Inicial"
+                />
+                <span className="text-slate-400 font-bold text-xs">até</span>
+                <input
+                  type="date"
+                  className="bg-white border border-slate-200 rounded-lg px-2 py-0.5 text-xs font-semibold text-slate-700 focus:outline-hidden focus:ring-1 focus:ring-brand-primary"
+                  value={dateEndFilter}
+                  onChange={(e) => setDateEndFilter(e.target.value)}
+                  title="Data Final"
+                  aria-label="Data Final"
+                />
+                {(dateStartFilter || dateEndFilter) && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setDateStartFilter("");
+                      setDateEndFilter("");
+                    }}
+                    className="p-1 hover:bg-slate-200 text-slate-400 hover:text-slate-600 rounded-md transition-colors cursor-pointer"
+                    title="Limpar filtro de data"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+
+              <p className="text-[10px] font-bold text-brand-text-secondary bg-slate-50 border border-slate-100 py-1 px-2 rounded-md shrink-0">
+                {filteredProjects.length === 1 
+                  ? (projectFilter === "A_FECHAR" ? "1 orçamento localizado" : "1 contrato localizado") 
+                  : `${filteredProjects.length} ${projectFilter === "A_FECHAR" ? "orçamentos localizados" : "contratos localizados"}`}
+              </p>
+              <button
+                onClick={() => setStickyColumns(!stickyColumns)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all ${
+                  stickyColumns ? "bg-brand-primary text-white" : "bg-slate-100 text-brand-text-secondary hover:bg-slate-200"
+                }`}
+              >
+                <span className="w-2 h-2 rounded-full bg-current"></span>
+                {stickyColumns ? "Colunas Fixas" : "Fixar Colunas"}
+              </button>
+            </div>
           </div>
 
         </div>

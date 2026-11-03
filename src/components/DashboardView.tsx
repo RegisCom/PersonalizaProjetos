@@ -18,15 +18,7 @@ import KPICard from "./KPICard";
 import ProgressBarKPI from "./ProgressBarKPI";
 import { DashboardStats } from "../types";
 import { useUIStore, useAuthStore } from "../store";
-
-const formatDateBR = (dateStr?: string | null) => {
-  if (!dateStr) return "";
-  const parts = dateStr.split("-");
-  if (parts.length === 3) {
-    return `${parts[2]}/${parts[1]}/${parts[0]}`;
-  }
-  return dateStr;
-};
+import { formatDateBR } from "../lib/dateUtils";
 
 export default function DashboardView() {
   const navigateToProject = useUIStore((state) => state.navigateToProject);

@@ -43,6 +43,7 @@ import {
   logDownload,
   logUserAction,
 } from "../lib/logger";
+import { formatDateBR } from "../lib/dateUtils";
 
 // Interactive client-side Excel Worksheet spreadsheet parser and viewer using Fortune Sheet
 import { Workbook } from "@fortune-sheet/react";
@@ -228,6 +229,23 @@ export default function ObraDetailView() {
   const [docScope, setDocScope] = useState("");
   const [docScopePct, setDocScopePct] = useState("***60%***");
   const [selectedBudgetItems, setSelectedBudgetItems] = useState<Record<string, boolean>>({});
+
+  // Editable Vendor Company Parameters (with localStorage persistence)
+  const [docVendorAddress, setDocVendorAddress] = useState(() => 
+    localStorage.getItem("budget_vendor_address") || "Setor SGCV - BLOCO 65/8 LOTE 03 LOJA 04 VILA DA PAPER HOUSE - Zona Industrial (Guará) - Brasília - DF - CEP: 71215-100"
+  );
+  const [docVendorRazaoSocial, setDocVendorRazaoSocial] = useState(() => 
+    localStorage.getItem("budget_vendor_razao") || "PERSONALIZA PROJETOS SOLUCOES INTELIGENTES EIRELI"
+  );
+  const [docVendorCnpj, setDocVendorCnpj] = useState(() => 
+    localStorage.getItem("budget_vendor_cnpj") || "29.287.090/0001-25"
+  );
+  const [docVendorPhone, setDocVendorPhone] = useState(() => 
+    localStorage.getItem("budget_vendor_phone") || "(61) 3346-7565"
+  );
+  const [docVendorEmail, setDocVendorEmail] = useState(() => 
+    localStorage.getItem("budget_vendor_email") || "comercial@personalizaprojetos.com.br"
+  );
 
   // Secondary document attachments and inline pdf preview states
   const [activePdfUrl, setActivePdfUrl] = useState<string | null>(null);
@@ -1616,7 +1634,7 @@ export default function ObraDetailView() {
                           {doc.nome}
                         </p>
                         <p className="text-[9px] text-brand-text-secondary">
-                          {doc.data} • {doc.tamanho}
+                          {formatDateBR(doc.data)} • {doc.tamanho}
                         </p>
                       </div>
                     </div>
@@ -2099,6 +2117,70 @@ export default function ObraDetailView() {
                 </div>
 
                 <h5 className="font-bold text-slate-800 uppercase tracking-widest text-[10px] border-b border-slate-200 pb-1 mt-2">
+                  Dados do Fornecedor / Empresa
+                </h5>
+
+                <div>
+                  <label className="block text-[9px] font-extrabold text-brand-text-secondary uppercase tracking-wider mb-1">
+                    CNPJ Fornecedor
+                  </label>
+                  <input
+                    type="text"
+                    className="w-full bg-white border border-slate-200 rounded-lg p-2 text-xs font-semibold focus:outline-hidden focus:ring-1 focus:ring-amber-500"
+                    value={docVendorCnpj}
+                    onChange={(e) => {
+                      setDocVendorCnpj(e.target.value);
+                      localStorage.setItem("budget_vendor_cnpj", e.target.value);
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[9px] font-extrabold text-brand-text-secondary uppercase tracking-wider mb-1">
+                    Telefone Fornecedor
+                  </label>
+                  <input
+                    type="text"
+                    className="w-full bg-white border border-slate-200 rounded-lg p-2 text-xs font-semibold focus:outline-hidden focus:ring-1 focus:ring-amber-500"
+                    value={docVendorPhone}
+                    onChange={(e) => {
+                      setDocVendorPhone(e.target.value);
+                      localStorage.setItem("budget_vendor_phone", e.target.value);
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[9px] font-extrabold text-brand-text-secondary uppercase tracking-wider mb-1">
+                    Endereço / CEP Fornecedor
+                  </label>
+                  <textarea
+                    rows={2}
+                    className="w-full bg-white border border-slate-200 rounded-lg p-2 text-xs font-semibold focus:outline-hidden focus:ring-1 focus:ring-amber-500 resize-none font-sans"
+                    value={docVendorAddress}
+                    onChange={(e) => {
+                      setDocVendorAddress(e.target.value);
+                      localStorage.setItem("budget_vendor_address", e.target.value);
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[9px] font-extrabold text-brand-text-secondary uppercase tracking-wider mb-1">
+                    Razão Social Fornecedor
+                  </label>
+                  <input
+                    type="text"
+                    className="w-full bg-white border border-slate-200 rounded-lg p-2 text-xs font-semibold focus:outline-hidden focus:ring-1 focus:ring-amber-500"
+                    value={docVendorRazaoSocial}
+                    onChange={(e) => {
+                      setDocVendorRazaoSocial(e.target.value);
+                      localStorage.setItem("budget_vendor_razao", e.target.value);
+                    }}
+                  />
+                </div>
+
+                <h5 className="font-bold text-slate-800 uppercase tracking-widest text-[10px] border-b border-slate-200 pb-1 mt-2">
                   Dados do Cliente
                 </h5>
 
@@ -2249,21 +2331,21 @@ export default function ObraDetailView() {
                         <div className="flex-1">
                           <h2 className="text-[14px] font-black tracking-tight text-slate-900 uppercase">PERSONALIZA PROJETOS</h2>
                           <p className="text-[8.5px] text-slate-650 leading-snug mt-1 max-w-md font-semibold">
-                            Setor SGCV - BLOCO 65/8 LOTE 03 LOJA 04 VILA DA PAPER HOUSE - Zona Industrial (Guará) - Brasília - DF - CEP: 71215-100
+                            {docVendorAddress}
                           </p>
                           <p className="text-[8.5px] text-slate-600 font-medium leading-normal mt-0.5">
-                            PERSONALIZA PROJETOS SOLUCOES INTELIGENTES EIRELI
+                            {docVendorRazaoSocial}
                           </p>
                           <p className="text-[8px] text-slate-500 font-mono mt-0.5">
-                            CNPJ: 14.938.262/0001-06 &nbsp; IE: 0759696400159
+                            CNPJ: {docVendorCnpj}
                           </p>
                         </div>
                       </div>
 
                       {/* Right: Vendor Contacts */}
                       <div className="md:col-span-4 text-left md:text-right flex flex-col md:items-end justify-center">
-                        <span className="text-xs font-black text-slate-900 tracking-tight font-mono mb-0.5">(61) 3346-7565</span>
-                        <span className="text-[9px] font-bold text-slate-650 hover:underline">comercial@personalizaprojetos.com.br</span>
+                        <span className="text-xs font-black text-slate-900 tracking-tight font-mono mb-0.5">{docVendorPhone}</span>
+                        <span className="text-[9px] font-bold text-slate-650 hover:underline">{docVendorEmail}</span>
                       </div>
                     </div>
 
